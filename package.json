@@ -1,0 +1,44 @@
+{
+  "name": "globaleats",
+  "version": "1.0.0",
+  "description": "Multi-stakeholder food delivery platform",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "setup:backend": "cd backend && npm run phase2:setup",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/globaleats.git"
+  },
+  "keywords": [
+    "food-delivery",
+    "restaurant",
+    "delivery",
+    "multi-restaurant",
+    "real-time",
+    "postgresql"
+  ],
+  "author": "GlobalEats Team",
+  "license": "MIT"
+}

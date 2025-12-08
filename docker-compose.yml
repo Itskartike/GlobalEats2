@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14
+    container_name: globaleats-postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - globaleats-network
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: globaleats-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - globaleats-network
+
+  # Backend API Server
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: globaleats-api
+    env_file:
+      - backend/.env
+    environment:
+      NODE_ENV: development
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      APP_URL: ${APP_URL}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - globaleats-network
+    command: npm start
+
+  # Frontend Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: globaleats-client
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+      VITE_APP_NAME: GlobalEats
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    networks:
+      - globaleats-network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+
+networks:
+  globaleats-network:
+    driver: bridge

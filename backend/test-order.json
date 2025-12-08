@@ -1,0 +1,17 @@
+{
+  "addressId": 1,
+  "paymentMethod": "cash",
+  "brands": [
+    {
+      "brandId": 1,
+      "items": [
+        {
+          "menuItemId": 1,
+          "outletId": 1,
+          "quantity": 1,
+          "price": 12.99
+        }
+      ]
+    }
+  ]
+}
