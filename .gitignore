@@ -120,3 +120,7 @@ public/uploads/
 # Test files
 test-results/
 playwright-report/
+backend/tests/scripts/*.json
+
+# Configuration with credentials
+backend/config/config.json

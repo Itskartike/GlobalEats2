@@ -1,16 +1,16 @@
 {
   "development": {
-    "username": "postgres",
-    "password": "123456",
-    "database": "postgres",
+    "username": "your_postgres_username",
+    "password": "your_postgres_password",
+    "database": "your_database_name",
     "host": "localhost",
     "port": 5432,
     "dialect": "postgres"
   },
   "test": {
-    "username": "postgres",
-    "password": "123456",
-    "database": "postgres_test",
+    "username": "your_postgres_username",
+    "password": "your_postgres_password",
+    "database": "your_test_database",
     "host": "localhost",
     "port": 5432,
     "dialect": "postgres"
