@@ -66,15 +66,27 @@ app.use(
 );
 
 // CORS configuration
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.APP_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:5173",
+  "http://localhost:4173",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001", // Frontend dev server
-      "http://localhost:5173", // Vite default port
-      "http://localhost:4173", // Vite preview port
-      process.env.APP_URL || "http://localhost:3000",
-    ],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.some((allowed) => origin.startsWith(allowed))) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -209,7 +221,9 @@ const initializeServer = async () => {
       console.log(`🚀 GlobalEats API server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`🔗 API URL: http://localhost:${PORT}`);
-      console.log(`📧 Email configured: ${process.env.SMTP_USER ? 'YES' : 'NO'}`);
+      console.log(
+        `📧 Email configured: ${process.env.SMTP_USER ? "YES" : "NO"}`
+      );
       console.log(
         `🗄️  Database: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_DATABASE}`
       );
@@ -247,4 +261,3 @@ process.on("SIGINT", () => {
 initializeServer();
 
 module.exports = app;
-
