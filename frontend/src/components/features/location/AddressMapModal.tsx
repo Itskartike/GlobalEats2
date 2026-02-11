@@ -84,9 +84,12 @@ export const AddressMapModal: React.FC<AddressMapModalProps> = ({
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+  const hasValidApiKey = apiKey && apiKey !== "YOUR_API_KEY_HERE";
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    googleMapsApiKey: hasValidApiKey ? apiKey : "",
     libraries,
   });
 
@@ -282,63 +285,77 @@ export const AddressMapModal: React.FC<AddressMapModalProps> = ({
 
           <form onSubmit={handleSubmit}>
             {/* Map Section */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Location on Map
-              </label>
+            {hasValidApiKey && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Location on Map
+                </label>
 
-              {loadError && (
-                <div className="text-red-600 mb-4">
-                  Error loading Google Maps
-                </div>
-              )}
-
-              {!isLoaded ? (
-                <div className="flex justify-center items-center h-64">
-                  <div className="text-gray-500">Loading map...</div>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-4">
-                    <div className="flex gap-2 mb-2">
-                      <Autocomplete
-                        onLoad={(autocomplete) => {
-                          autocompleteRef.current = autocomplete;
-                        }}
-                        onPlaceChanged={onPlaceChanged}
-                      >
-                        <input
-                          type="text"
-                          placeholder="Search for a location..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </Autocomplete>
-                      <Button type="button" onClick={getCurrentLocation}>
-                        Current Location
-                      </Button>
-                    </div>
+                {loadError && (
+                  <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+                    <p className="font-semibold">Google Maps unavailable</p>
+                    <p className="text-sm">
+                      Please fill in the address manually below.
+                    </p>
                   </div>
+                )}
 
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={mapCenter}
-                    zoom={15}
-                    onLoad={onMapLoad}
-                    onUnmount={onMapUnmount}
-                    onClick={onMapClick}
-                    options={{
-                      disableDefaultUI: false,
-                      zoomControl: true,
-                      streetViewControl: false,
-                      mapTypeControl: false,
-                      fullscreenControl: false,
-                    }}
-                  >
-                    <Marker position={markerPosition} draggable />
-                  </GoogleMap>
-                </>
-              )}
-            </div>
+                {!isLoaded && !loadError ? (
+                  <div className="flex justify-center items-center h-64 bg-gray-50 rounded-lg">
+                    <div className="text-gray-500">Loading map...</div>
+                  </div>
+                ) : !loadError ? (
+                  <>
+                    <div className="mb-4">
+                      <div className="flex gap-2 mb-2">
+                        <Autocomplete
+                          onLoad={(autocomplete) => {
+                            autocompleteRef.current = autocomplete;
+                          }}
+                          onPlaceChanged={onPlaceChanged}
+                        >
+                          <input
+                            type="text"
+                            placeholder="Search for a location..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </Autocomplete>
+                        <Button type="button" onClick={getCurrentLocation}>
+                          Current Location
+                        </Button>
+                      </div>
+                    </div>
+
+                    <GoogleMap
+                      mapContainerStyle={mapContainerStyle}
+                      center={mapCenter}
+                      zoom={15}
+                      onLoad={onMapLoad}
+                      onUnmount={onMapUnmount}
+                      onClick={onMapClick}
+                      options={{
+                        disableDefaultUI: false,
+                        zoomControl: true,
+                        streetViewControl: false,
+                        mapTypeControl: false,
+                        fullscreenControl: false,
+                      }}
+                    >
+                      <Marker position={markerPosition} draggable />
+                    </GoogleMap>
+                  </>
+                ) : null}
+              </div>
+            )}
+
+            {!hasValidApiKey && (
+              <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
+                <p className="font-semibold">ℹ️ Manual Address Entry</p>
+                <p className="text-sm">
+                  Please fill in your address details below.
+                </p>
+              </div>
+            )}
 
             {/* Address Form */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

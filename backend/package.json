@@ -17,11 +17,7 @@
     "db:setup": "node src/database/migrate.js setup",
     "db:reset": "node src/database/migrate.js reset",
     "db:rollback": "node src/database/migrate.js rollback",
-    "db:rollback:seed": "node src/database/migrate.js rollback:seed",
-    "phase2:setup": "node setup.js setup",
-    "phase2:reset": "node setup.js reset",
-    "migrate:up": "node database/migrationRunner.js up",
-    "migrate:down": "node database/migrationRunner.js down"
+    "db:rollback:seed": "node src/database/migrate.js rollback:seed"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

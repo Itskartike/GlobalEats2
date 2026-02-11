@@ -49,8 +49,25 @@ export interface AuthResponse {
 export const authService = {
   // Login user
   login: async (loginData: LoginCredentials): Promise<AuthResponse> => {
-    console.log("AuthService: Login attempt", { email: loginData.email });
-    const response = await api.post("/auth/login", loginData);
+    console.log("AuthService: Login attempt", { 
+      email: loginData.email,
+      hasPassword: !!loginData.password,
+      passwordLength: loginData.password?.length || 0
+    });
+    
+    // Ensure data is properly formatted
+    const payload = {
+      email: loginData.email?.trim(),
+      password: loginData.password
+    };
+    
+    console.log("AuthService: Sending payload", {
+      email: payload.email,
+      hasPassword: !!payload.password,
+      passwordLength: payload.password?.length || 0
+    });
+    
+    const response = await api.post("/auth/login", payload);
     console.log("AuthService: Login response", {
       success: response.data.success,
       user: response.data.data?.user?.name,
@@ -69,7 +86,33 @@ export const authService = {
 
   // Register user
   register: async (registerData: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post("/auth/register", registerData);
+    console.log("AuthService: Register attempt", {
+      name: registerData.name,
+      email: registerData.email,
+      phone: registerData.phone,
+      hasPassword: !!registerData.password,
+      passwordLength: registerData.password?.length || 0
+    });
+    
+    // Ensure data is properly formatted
+    const payload = {
+      name: registerData.name?.trim(),
+      email: registerData.email?.trim(),
+      phone: registerData.phone?.replace(/\D/g, ''), // Remove non-digits
+      password: registerData.password,
+      role: registerData.role || 'customer'
+    };
+    
+    console.log("AuthService: Sending payload", {
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      hasPassword: !!payload.password,
+      passwordLength: payload.password?.length || 0,
+      role: payload.role
+    });
+    
+    const response = await api.post("/auth/register", payload);
     if (response.data.success && response.data.data) {
       // Use TokenManager for consistent token storage
       TokenManager.setTokens(

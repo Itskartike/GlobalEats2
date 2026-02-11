@@ -64,17 +64,9 @@ export const Login: React.FC<LoginProps> = ({
       if (response.success && response.data) {
         console.log("Login: Success, calling auth store login", {
           user: response.data.user.name,
-          hasSessionToken: !!response.data.sessionToken,
         });
-        
-        const sessionData = response.data.sessionToken ? {
-          sessionToken: response.data.sessionToken,
-          sessionId: response.data.sessionId || "",
-          expiresAt: response.data.expiresAt || "",
-        } : undefined;
-        
-        login(response.data.user, response.data.token, sessionData);
-        toast.success(`Welcome back! Session valid for 2 days.`);
+        login(response.data.user, response.data.token);
+        toast.success("Login successful!");
         onClose?.();
       } else {
         console.log("Login: Failed", response.message);

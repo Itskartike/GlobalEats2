@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
-import { AuthProvider } from "./context/AuthProvider";
+import { AuthProvider } from "./contexts/AuthProvider";
 import { LocationProvider } from "./contexts/LocationContext";
 import Header from "./components/layout/Header";
 import { Footer } from "./components/layout/Footer";

@@ -399,37 +399,4 @@ router.post("/set-delivery-location", authenticateToken, async (req, res) => {
   }
 });
 
-// ============================================================================
-// PHASE 3B: MULTI-BRAND LOCATION-BASED APIs (Cloud Kitchen Model)
-// ============================================================================
-
-const locationController = require('../controllers/locationController');
-
-/**
- * @route GET /api/location/multi-brands
- * @desc Get all brands available near a specific location (multi-brand outlets)
- * @query latitude (required) - Customer's latitude
- * @query longitude (required) - Customer's longitude  
- * @query radius (optional) - Search radius in kilometers (default: 10)
- * @access Public
- */
-router.get('/multi-brands', (req, res) => locationController.getBrandsNearLocation(req, res));
-
-/**
- * @route GET /api/location/multi-brands/:brandId/menu
- * @desc Get menu for a specific brand with outlet-specific pricing
- * @param brandId - Brand ID to get menu for
- * @query latitude, longitude OR outlet_id - Either location or specific outlet
- * @access Public
- */
-router.get('/multi-brands/:brandId/menu', (req, res) => locationController.getBrandMenuWithPricing(req, res));
-
-/**
- * @route POST /api/location/assign-outlet
- * @desc Find and assign the best outlet to fulfill an order
- * @body brand_id, customer_latitude, customer_longitude, order_items (optional)
- * @access Public
- */
-router.post('/assign-outlet', (req, res) => locationController.assignOutletForOrder(req, res));
-
 module.exports = router;

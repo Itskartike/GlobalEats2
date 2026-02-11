@@ -1,4 +1,4 @@
-"use strict";
+8"use strict";
 
 module.exports = {
   async up(queryInterface, Sequelize) {

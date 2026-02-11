@@ -8,7 +8,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const { setLoading, login, isAuthenticated, user } = useAuthStore();
+  const { setLoading, login, logout, isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
     console.log("AuthProvider: Initializing authentication state");
@@ -30,34 +30,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.log("AuthProvider: Token is valid, restoring user session");
             login(response.data.user, storedToken);
           } else {
-            console.log("AuthProvider: Invalid response from profile API - keeping tokens for now");
-            // Don't clear tokens here - let user try to use the app
+            console.log("AuthProvider: Invalid response from profile API");
+            // Don't auto-logout here, let the user try to login again
           }
         })
         .catch((error) => {
           console.log("AuthProvider: Error validating token:", error.message);
-          
-          // Only clear tokens in very specific cases
-          if (error.response?.status === 401 && 
-              (error.response?.data?.code === "USER_INVALID" || 
-               error.response?.data?.code === "TOKEN_INVALID")) {
-            console.log("AuthProvider: Definitive invalid token, clearing auth data");
+          // Only clear tokens if it's a 401 error, otherwise keep the user logged in
+          if (error.response?.status === 401) {
+            console.log("AuthProvider: 401 error, clearing invalid token");
             localStorage.removeItem("auth-token");
             localStorage.removeItem("refresh-token");
-          } else {
-            console.log("AuthProvider: Network or temporary error, keeping tokens");
-            // For network errors or other issues, keep the tokens
-            // The user can still try to use the app and login manually if needed
+            // Don't call logout() here as it might cause side effects
           }
         })
         .finally(() => {
           setLoading(false);
         });
-    } else if (!storedToken) {
-      console.log("AuthProvider: No stored token found");
-      setLoading(false);
     } else {
-      console.log("AuthProvider: User already authenticated or loading");
+      console.log(
+        "AuthProvider: No stored token, already authenticated, or user already loaded"
+      );
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

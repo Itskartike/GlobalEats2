@@ -1,19 +1,37 @@
-const User = require("./User");
-const Restaurant = require("./Restaurant");
-const MenuItem = require("./MenuItem");
-const Order = require("./Order");
-const OrderItem = require("./OrderItem");
-const Address = require("./Address");
-const Brand = require("./Brand");
-const Outlet = require("./Outlet");
-const Category = require("./Category");
-const OutletMenuItem = require("./OutletMenuItem");
-const BrandCategory = require("./BrandCategory");
-const OutletBrand = require("./OutletBrand");
-const UserSession = require("./UserSession");
+const User = require('./User');
+const Restaurant = require('./Restaurant');
+const MenuItem = require('./MenuItem');
+const Order = require('./Order');
+const OrderItem = require('./OrderItem');
+const Address = require('./Address');
 
-// NOTE: All associations have been moved to associations.js to create a single source of truth.
-// This file should only be used for exporting model definitions.
+// User associations
+User.hasMany(Restaurant, { foreignKey: 'owner_id', as: 'Restaurants' });
+User.hasMany(Order, { foreignKey: 'user_id', as: 'Orders' });
+User.hasMany(Address, { foreignKey: 'user_id', as: 'Addresses' });
+User.hasMany(Order, { foreignKey: 'delivery_agent_id', as: 'DeliveryOrders' });
+
+// Restaurant associations
+Restaurant.belongsTo(User, { foreignKey: 'owner_id', as: 'Owner' });
+Restaurant.hasMany(MenuItem, { foreignKey: 'restaurant_id', as: 'MenuItems' });
+Restaurant.hasMany(OrderItem, { foreignKey: 'restaurant_id', as: 'OrderItems' });
+
+// MenuItem associations
+MenuItem.belongsTo(Restaurant, { foreignKey: 'restaurant_id', as: 'Restaurant' });
+MenuItem.hasMany(OrderItem, { foreignKey: 'menu_item_id', as: 'OrderItems' });
+
+// Order associations
+Order.belongsTo(User, { foreignKey: 'user_id', as: 'Customer' });
+Order.belongsTo(User, { foreignKey: 'delivery_agent_id', as: 'DeliveryAgent' });
+Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'OrderItems' });
+
+// OrderItem associations
+OrderItem.belongsTo(Order, { foreignKey: 'order_id', as: 'Order' });
+OrderItem.belongsTo(MenuItem, { foreignKey: 'menu_item_id', as: 'MenuItem' });
+OrderItem.belongsTo(Restaurant, { foreignKey: 'restaurant_id', as: 'Restaurant' });
+
+// Address associations
+Address.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
 module.exports = {
   User,
@@ -21,12 +39,5 @@ module.exports = {
   MenuItem,
   Order,
   OrderItem,
-  Address,
-  Brand,
-  Outlet,
-  Category,
-  OutletMenuItem,
-  BrandCategory,
-  OutletBrand,
-  UserSession,
+  Address
 };

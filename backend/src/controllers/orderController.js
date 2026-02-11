@@ -414,7 +414,6 @@ class OrderController {
                   "logo_url",
                   "banner_url",
                   "cuisine_type",
-                  "rating",
                   "is_active",
                 ],
                 through: { attributes: [] }, // Exclude junction table attributes
@@ -445,7 +444,6 @@ class OrderController {
                   "description",
                   "base_price",
                   "image_url",
-                  "category",
                   "is_vegetarian",
                   "is_vegan",
                   "is_gluten_free",
@@ -465,96 +463,106 @@ class OrderController {
       console.log(`Found ${orders.count} orders for user ${userId}`);
 
       // Transform orders to frontend-friendly format
-      const transformedOrders = orders.rows.map((order) => ({
-        id: order.id,
-        orderNumber: order.order_number,
-        userId: order.user_id,
-        status: order.status,
-        orderType: order.order_type,
-        paymentStatus: order.payment_status,
-        paymentMethod: order.payment_method,
+      const transformedOrders = orders.rows.map((order) => {
+        try {
+          return {
+            id: order.id,
+            orderNumber: order.order_number,
+            userId: order.user_id,
+            status: order.status,
+            orderType: order.order_type,
+            paymentStatus: order.payment_status,
+            paymentMethod: order.payment_method,
 
-        // Financial details
-        subtotal: parseFloat(order.subtotal || 0),
-        deliveryFee: parseFloat(order.delivery_fee || 0),
-        taxAmount: parseFloat(order.tax_amount || 0),
-        discountAmount: parseFloat(order.discount_amount || 0),
-        totalAmount: parseFloat(order.total_amount || 0),
+            // Financial details
+            subtotal: parseFloat(order.subtotal || 0),
+            deliveryFee: parseFloat(order.delivery_fee || 0),
+            taxAmount: parseFloat(order.tax_amount || 0),
+            discountAmount: parseFloat(order.discount_amount || 0),
+            totalAmount: parseFloat(order.total_amount || 0),
 
-        // Timing
-        estimatedDeliveryTime: order.estimated_delivery_time,
-        actualDeliveryTime: order.actual_delivery_time,
-        preparationTime: order.preparation_time,
+            // Timing
+            estimatedDeliveryTime: order.estimated_delivery_time,
+            actualDeliveryTime: order.actual_delivery_time,
+            preparationTime: order.preparation_time,
 
-        // Additional info
-        specialInstructions: order.special_instructions,
-        createdAt: order.created_at,
-        updatedAt: order.updated_at,
-        placedAt: order.created_at,
+            // Additional info
+            specialInstructions: order.special_instructions,
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
+            placedAt: order.created_at,
 
-        // Delivery address - Enhanced for order history display
-        deliveryAddress: order.address
-          ? {
-              id: order.address.id,
-              recipient_name: order.address.recipient_name,
-              street_address: order.address.street_address,
-              city: order.address.city,
-              state: order.address.state,
-              pincode: order.address.pincode,
-              phone: order.address.phone,
-              landmark: order.address.landmark,
-              address_type: order.address.address_type,
-              is_default: order.address.is_default,
-              fullAddress: `${order.address.street_address}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}`,
-              shortAddress: `${order.address.city}, ${order.address.state}`,
-              area: order.address.city,
-            }
-          : null,
+            // Delivery address - Enhanced for order history display
+            deliveryAddress: order.address
+              ? {
+                  id: order.address.id,
+                  recipient_name: order.address.recipient_name,
+                  street_address: order.address.street_address,
+                  city: order.address.city,
+                  state: order.address.state,
+                  pincode: order.address.pincode,
+                  phone: order.address.phone,
+                  landmark: order.address.landmark,
+                  address_type: order.address.address_type,
+                  is_default: order.address.is_default,
+                  fullAddress: `${order.address.street_address}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}`,
+                  shortAddress: `${order.address.city}, ${order.address.state}`,
+                  area: order.address.city,
+                }
+              : null,
 
-        // Restaurant/outlet info
-        restaurant: order.outlet
-          ? {
-              id: order.outlet.id,
-              outletName: order.outlet.name,
-              outletAddress: order.outlet.address,
-              phone: order.outlet.phone,
-              brand:
-                order.outlet.Brands && order.outlet.Brands.length > 0
-                  ? {
-                      id: order.outlet.Brands[0].id,
-                      name: order.outlet.Brands[0].name,
-                      logo: order.outlet.Brands[0].logo_url,
-                      cuisine: order.outlet.Brands[0].cuisine_type,
-                      rating: order.outlet.Brands[0].rating,
-                    }
-                  : null,
-            }
-          : null,
+            // Restaurant/outlet info
+            restaurant: order.outlet
+              ? {
+                  id: order.outlet.id,
+                  outletName: order.outlet.name,
+                  outletAddress: order.outlet.address,
+                  phone: order.outlet.phone,
+                  brand:
+                    order.outlet.Brands &&
+                    Array.isArray(order.outlet.Brands) &&
+                    order.outlet.Brands.length > 0
+                      ? {
+                          id: order.outlet.Brands[0].id,
+                          name: order.outlet.Brands[0].name,
+                          logo: order.outlet.Brands[0].logo_url || null,
+                          cuisine: order.outlet.Brands[0].cuisine_type || null,
+                        }
+                      : null,
+                }
+              : null,
 
-        // Order items summary for history view
-        items: order.orderItems
-          ? order.orderItems.map((item) => ({
-              id: item.id,
-              menuItemId: item.menu_item_id,
-              name: item.menuItem?.name || "Unknown Item",
-              quantity: item.quantity,
-              price: parseFloat(item.unit_price || 0),
-              totalPrice: parseFloat(item.total_price || 0),
-              image: item.menuItem?.image_url,
-              isVegetarian: item.menuItem?.is_vegetarian,
-              category: item.menuItem?.category,
-            }))
-          : [],
+            // Order items summary for history view
+            items: order.orderItems
+              ? order.orderItems.map((item) => ({
+                  id: item.id,
+                  menuItemId: item.menu_item_id,
+                  name: item.menuItem?.name || "Unknown Item",
+                  quantity: item.quantity,
+                  price: parseFloat(item.unit_price || 0),
+                  totalPrice: parseFloat(item.total_price || 0),
+                  image: item.menuItem?.image_url,
+                  isVegetarian: item.menuItem?.is_vegetarian,
+                }))
+              : [],
 
-        // Summary calculations
-        itemCount: order.orderItems ? order.orderItems.length : 0,
-        totalQuantity: order.orderItems
-          ? order.orderItems.reduce((sum, item) => sum + item.quantity, 0)
-          : 0,
+            // Summary calculations
+            itemCount: order.orderItems ? order.orderItems.length : 0,
+            totalQuantity: order.orderItems
+              ? order.orderItems.reduce((sum, item) => sum + item.quantity, 0)
+              : 0,
 
-        // For backward compatibility
-        orderItems: order.orderItems, // Keep original structure as well
-      }));
+            // For backward compatibility
+            orderItems: order.orderItems, // Keep original structure as well
+          };
+        } catch (transformError) {
+          console.error(
+            `Error transforming order ${order.id}:`,
+            transformError
+          );
+          throw transformError;
+        }
+      });
 
       res.json({
         success: true,
@@ -572,12 +580,17 @@ class OrderController {
       });
     } catch (error) {
       console.error("Error fetching order history:", error);
+      console.error("Error stack:", error.stack);
       res.status(500).json({
         success: false,
         message: "Failed to fetch order history",
         error:
           process.env.NODE_ENV === "development"
-            ? error.message
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
             : "Internal server error",
       });
     }
@@ -644,7 +657,6 @@ class OrderController {
                   "logo_url",
                   "banner_url",
                   "cuisine_type",
-                  "rating",
                   "is_active",
                 ],
                 through: { attributes: [] }, // Exclude junction table attributes
@@ -675,7 +687,6 @@ class OrderController {
                   "description",
                   "base_price",
                   "image_url",
-                  "category",
                   "is_vegetarian",
                   "is_vegan",
                   "is_gluten_free",
@@ -770,7 +781,6 @@ class OrderController {
                       name: order.outlet.Brands[0].name,
                       logo: order.outlet.Brands[0].logo_url,
                       cuisine: order.outlet.Brands[0].cuisine_type,
-                      rating: order.outlet.Brands[0].rating,
                     }
                   : null,
             }
@@ -798,7 +808,6 @@ class OrderController {
               isVegan: item.menuItem?.is_vegan,
               isGlutenFree: item.menuItem?.is_gluten_free,
               spiceLevel: item.menuItem?.spice_level,
-              category: item.menuItem?.category,
 
               // Brand info for the item
               brand: item.menuItem?.parentBrand

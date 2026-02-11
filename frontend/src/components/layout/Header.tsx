@@ -15,7 +15,7 @@ import { useCartStore } from "../../store/cartStore";
 import { useLocation } from "../../hooks/useLocation";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
-import { LoginModal } from "../features/auth/LoginModal";
+import { AuthModal } from "../auth/AuthModal";
 import { Outlet } from "../../types/index";
 
 const Header: React.FC = () => {
@@ -143,7 +143,7 @@ const Header: React.FC = () => {
                   placeholder="Search for restaurants, cuisines..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       const query = (e.target as HTMLInputElement).value;
                       if (query.trim()) {
                         window.location.href = `/restaurants?search=${encodeURIComponent(query)}`;
@@ -237,7 +237,7 @@ const Header: React.FC = () => {
                     placeholder="Search restaurants..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         const query = (e.target as HTMLInputElement).value;
                         if (query.trim()) {
                           setIsMobileMenuOpen(false);
@@ -300,7 +300,7 @@ const Header: React.FC = () => {
       </header>
 
       {/* Auth Modal */}
-      <LoginModal
+      <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />

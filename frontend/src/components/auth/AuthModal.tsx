@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Login } from "./Login";
-import { Register } from "../features/auth/Register";
+import { Register } from "./Register";
 import { ForgotPassword } from "./ForgotPassword";
 
 type AuthMode = "login" | "register" | "forgot-password";

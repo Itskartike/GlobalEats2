@@ -17,8 +17,7 @@ import { paymentService } from "../services/paymentService";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { AddressSelectionStep } from "../components/features/checkout/AddressSelectionStep";
-import { NavigationSafeWrapper } from "../components/common/NavigationSafeWrapper";
-
+import { NavigationSafeWrapper } from "/src/components/common/NavigationSafeWrapper";
 // Razorpay types
 declare global {
   interface Window {
@@ -105,7 +104,9 @@ export const Checkout: React.FC = () => {
           // For COD, fetch full order details with items
           clearCart();
           try {
-            const orderDetails = await orderService.getOrderDetails(result.data.orders[0].id);
+            const orderDetails = await orderService.getOrderDetails(
+              result.data.orders[0].id
+            );
             if (orderDetails.success && orderDetails.data) {
               navigate(`/order-confirmation`, {
                 state: {
@@ -605,4 +606,3 @@ export const Checkout: React.FC = () => {
     </div>
   );
 };
-
