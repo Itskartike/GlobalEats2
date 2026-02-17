@@ -81,6 +81,8 @@ const allowedOrigins = [
   "https://frontend-peach-sigma-74.vercel.app",
   "https://frontend-git-main-itskartikes-projects.vercel.app",
   "https://frontend-itskartikes-projects.vercel.app",
+  "https://www.globaleats.tech",
+  "https://globaleats.tech",
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
