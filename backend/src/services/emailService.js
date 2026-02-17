@@ -1,21 +1,34 @@
 const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const path = require("path");
 const fs = require("fs").promises;
 
-// Create transporter — auto-detect SSL based on port
-const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: smtpPort,
-  secure: smtpPort === 465, // true for 465 (SSL), false for 587 (STARTTLS)
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-});
+// ─── Email Provider Setup ───────────────────────────────────────────
+// Uses Resend (HTTP API) when RESEND_API_KEY is set (production on Render)
+// Falls back to SMTP/nodemailer for local development
+const useResend = !!process.env.RESEND_API_KEY;
+let resend = null;
+let transporter = null;
+
+if (useResend) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+  console.log("📧 Email provider: Resend (HTTP API)");
+} else {
+  const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+  console.log("📧 Email provider: SMTP");
+}
 
 // Email templates
 const emailTemplates = {
@@ -73,7 +86,7 @@ const replacePlaceholders = (template, data) => {
   return result;
 };
 
-// Send email
+// Send email via the configured provider
 const sendEmail = async (to, templateName, data = {}) => {
   try {
     const template = emailTemplates[templateName];
@@ -92,20 +105,36 @@ const sendEmail = async (to, templateName, data = {}) => {
       currentYear: new Date().getFullYear(),
     });
 
-    const mailOptions = {
-      from: process.env.SMTP_FROM,
-      to: to,
-      subject: template.subject,
-      html: html,
-    };
+    const fromAddress =
+      process.env.RESEND_FROM || process.env.SMTP_FROM || "Global-Eats <onboarding@resend.dev>";
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully:", info.messageId);
+    if (useResend) {
+      // Send via Resend HTTP API (works on Render)
+      const { data: result, error } = await resend.emails.send({
+        from: fromAddress,
+        to: [to],
+        subject: template.subject,
+        html: html,
+      });
 
-    return {
-      success: true,
-      messageId: info.messageId,
-    };
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      console.log("Email sent via Resend:", result.id);
+      return { success: true, messageId: result.id };
+    } else {
+      // Send via SMTP/nodemailer (local dev)
+      const info = await transporter.sendMail({
+        from: fromAddress,
+        to: to,
+        subject: template.subject,
+        html: html,
+      });
+
+      console.log("Email sent via SMTP:", info.messageId);
+      return { success: true, messageId: info.messageId };
+    }
   } catch (error) {
     console.error("Error sending email:", error);
     return {
@@ -227,8 +256,12 @@ const sendBulkEmail = async (recipients, templateName, data = {}) => {
 // Test email configuration
 const testEmailConfig = async () => {
   try {
+    if (useResend) {
+      console.log("✅ Email configured via Resend (HTTP API — no SMTP needed)");
+      return true;
+    }
     await transporter.verify();
-    console.log("✅ Email configuration is valid");
+    console.log("✅ Email configuration is valid (SMTP)");
     return true;
   } catch (error) {
     console.error("❌ Email configuration error:", error);
