@@ -22,9 +22,7 @@ async function ensureMigrationsTable() {
       `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename != '_migrations';`
     );
     if (tables.length > 0) {
-      console.log(
-        "📋 Backfilling migration tracking table for existing DB..."
-      );
+      console.log("📋 Backfilling migration tracking table for existing DB...");
       const migrationsDir = path.join(__dirname, "migrations");
       const migrationFiles = fs
         .readdirSync(migrationsDir)
