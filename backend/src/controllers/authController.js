@@ -279,11 +279,15 @@ const sendVerificationEmail = async (req, res) => {
     const user = await User.findByPk(userId);
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     if (user.is_verified) {
-      return res.status(200).json({ success: true, message: "Email already verified" });
+      return res
+        .status(200)
+        .json({ success: true, message: "Email already verified" });
     }
 
     // Generate a new verification token
@@ -292,15 +296,29 @@ const sendVerificationEmail = async (req, res) => {
     await user.save();
 
     // Send the email and ensure success
-    const emailResult = await sendEmailVerificationEmail(user, verificationToken);
+    const emailResult = await sendEmailVerificationEmail(
+      user,
+      verificationToken
+    );
     if (!emailResult || emailResult.success !== true) {
-      return res.status(500).json({ success: false, message: "Failed to send verification email" });
+      console.error("Verification email failed:", emailResult?.error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Please try again later.",
+        ...(process.env.NODE_ENV !== "production" && {
+          detail: emailResult?.error,
+        }),
+      });
     }
 
-    return res.status(200).json({ success: true, message: "Verification email sent" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Verification email sent" });
   } catch (error) {
     console.error("Send verification email error:", error);
-    res.status(500).json({ success: false, message: "Failed to send verification email" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to send verification email" });
   }
 };
 
@@ -317,7 +335,7 @@ const refreshToken = async (req, res) => {
     }
 
     // Verify refresh token (uses separate refresh secret)
-    const refreshSecret = (process.env.JWT_SECRET || '') + '_refresh';
+    const refreshSecret = (process.env.JWT_SECRET || "") + "_refresh";
     const decoded = jwt.verify(refreshToken, refreshSecret);
 
     if (decoded.type !== "refresh") {
