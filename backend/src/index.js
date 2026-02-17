@@ -78,6 +78,7 @@ app.use(
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.APP_URL,
+  "https://frontend-peach-sigma-74.vercel.app",
   "https://frontend-git-main-itskartikes-projects.vercel.app",
   "https://frontend-itskartikes-projects.vercel.app",
   "http://localhost:3000",
