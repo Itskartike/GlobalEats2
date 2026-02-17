@@ -5,7 +5,6 @@ let sequelize;
 
 if (process.env.DATABASE_URL) {
   // Production - use DATABASE_URL from Render PostgreSQL
-  console.log("🔗 Connecting to database using DATABASE_URL");
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: "postgres",
     logging: false,
@@ -29,7 +28,6 @@ if (process.env.DATABASE_URL) {
   });
 } else {
   // Development - use individual environment variables
-  console.log("🔗 Connecting to local database");
   sequelize = new Sequelize(
     process.env.DB_DATABASE || "postgres",
     process.env.DB_USERNAME || "postgres",
@@ -66,9 +64,18 @@ const testConnection = async () => {
 };
 
 // Sync database (create tables)
+// WARNING: force=true drops all tables - never allow in production
 const syncDatabase = async (force = false) => {
   try {
-    await sequelize.sync({ force });
+    if (force && process.env.NODE_ENV === "production") {
+      throw new Error(
+        "Cannot force sync database in production - this would drop all tables!"
+      );
+    }
+    // In production, use alter:true for safe schema updates; prefer migrations for complex changes
+    const syncOptions =
+      process.env.NODE_ENV === "production" ? { alter: false } : { force };
+    await sequelize.sync(syncOptions);
     console.log("✅ Database synchronized successfully.");
   } catch (error) {
     console.error("❌ Error synchronizing database:", error);

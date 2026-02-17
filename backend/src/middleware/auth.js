@@ -13,11 +13,6 @@ const authenticateToken = async (req, res, next) => {
       token = authHeader.split(" ")[1];
     }
 
-    // Check query parameter as fallback
-    if (!token && req.query.token) {
-      token = req.query.token;
-    }
-
     // Check cookie as another fallback
     if (!token && req.cookies && req.cookies.auth_token) {
       token = req.cookies.auth_token;
@@ -32,14 +27,9 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("JWT decoded payload:", decoded);
 
     // Get user from database
     const user = await User.findByPk(decoded.userId);
-    console.log(
-      "User found from JWT:",
-      user ? { id: user.id, email: user.email, name: user.name } : "NULL"
-    );
 
     if (!user || !user.is_active) {
       return res.status(401).json({
@@ -52,8 +42,6 @@ const authenticateToken = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error("Token verification error:", error);
-
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
         success: false,
@@ -70,7 +58,6 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    console.error("Auth middleware error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -168,19 +155,22 @@ const checkOwnership = (model, paramName = "id") => {
   };
 };
 
-// Generate JWT token - shorter expiration for better security
+// Generate JWT token
 const generateToken = (userId) => {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET environment variable is not set");
   }
 
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "1h" });
+  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+  });
 };
 
-// Generate refresh token
+// Generate refresh token with separate secret
 const generateRefreshToken = (userId) => {
-  return jwt.sign({ userId, type: "refresh" }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
+  const refreshSecret = (process.env.JWT_SECRET || "") + "_refresh";
+  return jwt.sign({ userId, type: "refresh" }, refreshSecret, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   });
 };
 

@@ -9,16 +9,17 @@ const path = require("path");
 // Load environment variables from the correct path
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
-// Debug environment variables
-console.log("🔧 Environment Debug:");
-console.log("Working Directory:", process.cwd());
-console.log("Script Directory:", __dirname);
-console.log("ENV File Path:", path.join(__dirname, "..", ".env"));
-console.log("JWT_SECRET loaded:", process.env.JWT_SECRET ? "YES" : "NO");
-console.log(
-  "JWT_SECRET length:",
-  process.env.JWT_SECRET ? process.env.JWT_SECRET.length : "undefined"
-);
+// Validate critical environment variables in production
+if (process.env.NODE_ENV === "production") {
+  const required = ["JWT_SECRET", "DATABASE_URL"];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    console.error(
+      `❌ Missing required environment variables: ${missing.join(", ")}`
+    );
+    process.exit(1);
+  }
+}
 
 const { testConnection, syncDatabase } = require("./database/config/database");
 const { testEmailConfig } = require("./services/emailService");
@@ -39,10 +40,12 @@ const categoryRoutes = require("./routes/categories");
 const locationRoutes = require("./routes/location");
 const addressRoutes = require("./routes/addresses");
 const outletRoutes = require("./routes/outlets");
-const testRoutes = require("./routes/test");
-
 // Admin routes
 const adminRoutes = require("./admin/adminRoutes");
+
+// Test routes (development only)
+const testRoutes =
+  process.env.NODE_ENV !== "production" ? require("./routes/test") : null;
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -96,11 +99,25 @@ app.use(
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // increased limit for development - limit each IP to 1000 requests per windowMs
+  max: process.env.NODE_ENV === "production" ? 200 : 1000,
   message: {
     success: false,
     message: "Too many requests from this IP, please try again later.",
   },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter rate limit for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "production" ? 20 : 1000,
+  message: {
+    success: false,
+    message: "Too many authentication attempts, please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 app.use("/api/", limiter);
@@ -130,7 +147,7 @@ app.get("/health", (req, res) => {
 });
 
 // API routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 // app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
@@ -141,7 +158,10 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/location", locationRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/outlets", outletRoutes);
-app.use("/api/test", testRoutes);
+// Test routes - only available in development
+if (testRoutes) {
+  app.use("/api/test", testRoutes);
+}
 
 // Admin routes (Protected)
 app.use("/api/admin", adminRoutes);
@@ -196,10 +216,13 @@ app.use((error, req, res, next) => {
     });
   }
 
-  // Default error response
+  // Default error response - never leak internal details in production
   res.status(error.status || 500).json({
     success: false,
-    message: error.message || "Internal server error",
+    message:
+      process.env.NODE_ENV === "production"
+        ? "Internal server error"
+        : error.message || "Internal server error",
     ...(process.env.NODE_ENV === "development" && { stack: error.stack }),
   });
 });

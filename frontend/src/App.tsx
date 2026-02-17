@@ -20,7 +20,6 @@ import { ResetPassword } from "./pages/ResetPassword";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { BrandDetail } from "./components/features/restaurants/BrandDetail";
 import { BrandMenu } from "./components/features/restaurants/BrandMenu";
-import GoogleMapsTestPage from "./pages/GoogleMapsTest";
 import AdminApp from "./admin/AdminApp";
 import { LocationModal } from "./components/location/LocationModal";
 
@@ -54,7 +53,6 @@ function AppRouter() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/google-maps-test" element={<GoogleMapsTestPage />} />
           <Route path="/brands/:brandSlug" element={<BrandMenu />} />
           <Route path="/brands/:brandSlug/details" element={<BrandDetail />} />
         </Routes>
