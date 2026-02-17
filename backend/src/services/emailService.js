@@ -106,7 +106,9 @@ const sendEmail = async (to, templateName, data = {}) => {
     });
 
     const fromAddress =
-      process.env.RESEND_FROM || process.env.SMTP_FROM || "Global-Eats <onboarding@resend.dev>";
+      process.env.RESEND_FROM ||
+      process.env.SMTP_FROM ||
+      "Global-Eats <onboarding@resend.dev>";
 
     if (useResend) {
       // Send via Resend HTTP API (works on Render)

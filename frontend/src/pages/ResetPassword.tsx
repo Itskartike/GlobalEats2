@@ -51,6 +51,16 @@ export const ResetPassword: React.FC = () => {
       });
       return false;
     }
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      setError(
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+      );
+      toast.error(
+        "Password must contain uppercase, lowercase, and a number",
+        { duration: 5000 }
+      );
+      return false;
+    }
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       toast.error("Passwords do not match", { duration: 5000 });
@@ -86,9 +96,12 @@ export const ResetPassword: React.FC = () => {
         setError(errorMessage);
         toast.error(errorMessage, { duration: 6000 });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Reset password error:", error);
-      const errorMessage = "An error occurred. Please try again.";
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.[0]?.msg ||
+        "An error occurred. Please try again.";
       setError(errorMessage);
       toast.error(errorMessage, { duration: 6000 });
     } finally {
