@@ -149,7 +149,7 @@ User.prototype.generatePasswordResetToken = function () {
     .update(resetToken)
     .digest("hex");
 
-  this.password_reset_expires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.password_reset_expires = Date.now() + 60 * 60 * 1000; // 1 hour
 
   return resetToken;
 };

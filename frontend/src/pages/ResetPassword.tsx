@@ -55,10 +55,9 @@ export const ResetPassword: React.FC = () => {
       setError(
         "Password must contain at least one uppercase letter, one lowercase letter, and one number"
       );
-      toast.error(
-        "Password must contain uppercase, lowercase, and a number",
-        { duration: 5000 }
-      );
+      toast.error("Password must contain uppercase, lowercase, and a number", {
+        duration: 5000,
+      });
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
