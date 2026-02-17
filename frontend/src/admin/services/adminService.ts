@@ -279,7 +279,7 @@ class AdminService {
   // Category management methods
   async getCategories() {
     try {
-      const response = await api.get("/categories");
+      const response = await api.get("/admin/categories");
       return response.data;
     } catch (error: unknown) {
       console.error("Categories fetch error:", error);

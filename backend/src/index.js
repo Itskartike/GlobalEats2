@@ -177,6 +177,7 @@ if (testRoutes) {
 }
 
 // Admin routes (Protected)
+app.use("/api/admin/login", authLimiter);
 app.use("/api/admin", adminRoutes);
 
 // 404 handler

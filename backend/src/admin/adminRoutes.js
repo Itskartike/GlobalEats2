@@ -241,7 +241,7 @@ router.post("/outlets", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to create outlet",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -310,7 +310,7 @@ router.put("/outlets/:id", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update outlet",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -324,6 +324,20 @@ router.delete("/outlets/:id", adminAuth, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Outlet not found",
+      });
+    }
+
+    // Check for active/pending orders before deletion
+    const activeOrdersCount = await Order.count({
+      where: {
+        outlet_id: id,
+        status: { [Op.notIn]: ['delivered', 'cancelled', 'refunded'] },
+      },
+    });
+    if (activeOrdersCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete outlet with ${activeOrdersCount} active order(s). Complete or cancel all orders first.`,
       });
     }
 
@@ -446,7 +460,7 @@ router.post("/brands", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to create brand",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -530,7 +544,7 @@ router.put("/brands/:id", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update brand",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -547,13 +561,23 @@ router.delete("/brands/:id", adminAuth, async (req, res) => {
       });
     }
 
-    // Check if brand has outlets
-    const outletsCount = await Outlet.count({ where: { brand_id: id } });
+    // Check if brand has outlets (via OutletBrand junction table)
+    const outletsCount = await OutletBrand.count({ where: { brand_id: id } });
     if (outletsCount > 0) {
       return res.status(400).json({
         success: false,
         message:
-          "Cannot delete brand that has outlets. Please delete outlets first.",
+          "Cannot delete brand that is associated with outlets. Remove outlet associations first.",
+      });
+    }
+
+    // Check if brand has menu items
+    const menuItemsCount = await MenuItem.count({ where: { brand_id: id } });
+    if (menuItemsCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot delete brand that has menu items. Delete menu items first.",
       });
     }
 
@@ -858,7 +882,7 @@ router.get("/categories", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch categories",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -903,7 +927,7 @@ router.post("/categories", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to create category",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -953,7 +977,7 @@ router.put("/categories/:id", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update category",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -991,7 +1015,7 @@ router.delete("/categories/:id", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete category",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -1001,7 +1025,7 @@ router.delete("/categories/:id", adminAuth, async (req, res) => {
 // GET /admin/menu-items - Get all menu items with filters
 router.get("/menu-items", adminAuth, async (req, res) => {
   try {
-    const { brand_id, category_id, search } = req.query;
+    const { brand_id, category_id, search, page, limit: queryLimit } = req.query;
     const where = {};
 
     if (brand_id) {
@@ -1014,7 +1038,11 @@ router.get("/menu-items", adminAuth, async (req, res) => {
       where.name = { [Op.iLike]: `%${search}%` };
     }
 
-    const menuItems = await MenuItem.findAll({
+    // Pagination with sensible defaults (cap at 500 items max)
+    const limit = Math.min(parseInt(queryLimit) || 100, 500);
+    const offset = page ? (parseInt(page) - 1) * limit : 0;
+
+    const { count, rows: menuItems } = await MenuItem.findAndCountAll({
       where,
       include: [
         {
@@ -1048,18 +1076,26 @@ router.get("/menu-items", adminAuth, async (req, res) => {
         "created_at",
         "updated_at",
       ],
+      limit,
+      offset,
     });
 
     res.json({
       success: true,
       data: menuItems,
+      pagination: {
+        currentPage: parseInt(page) || 1,
+        totalPages: Math.ceil(count / limit),
+        totalItems: count,
+        itemsPerPage: limit,
+      },
     });
   } catch (error) {
     console.error("Menu items fetch error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch menu items",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -1148,7 +1184,7 @@ router.post("/menu-items", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to create menu item",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -1244,7 +1280,7 @@ router.put("/menu-items/:id", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update menu item",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -1273,7 +1309,7 @@ router.delete("/menu-items/:id", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete menu item",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -1289,19 +1325,29 @@ router.get("/orders/analytics", adminAuth, async (req, res) => {
     const now = new Date();
     
     switch (period) {
-      case "today":
-        dateFilter = {
-          [Op.gte]: new Date(now.setHours(0, 0, 0, 0)),
-        };
+      case "today": {
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
+        dateFilter = { [Op.gte]: startOfDay };
         break;
-      case "week":
+      }
+      case "week": {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         dateFilter = { [Op.gte]: weekAgo };
         break;
-      case "month":
+      }
+      case "month": {
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         dateFilter = { [Op.gte]: monthAgo };
         break;
+      }
+      default: {
+        // Default to today if invalid period
+        const defaultStart = new Date(now);
+        defaultStart.setHours(0, 0, 0, 0);
+        dateFilter = { [Op.gte]: defaultStart };
+        break;
+      }
     }
 
     // Get order counts by status using raw SQL
@@ -1384,7 +1430,7 @@ router.get("/orders/analytics", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch order analytics",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -1430,6 +1476,55 @@ router.get("/orders", adminAuth, async (req, res) => {
       }
     }
 
+    // Build search conditions in SQL instead of post-query filtering
+    const include = [
+      {
+        model: User,
+        as: "user",
+        attributes: ["id", "name", "email", "phone"],
+        ...(search ? { where: { [Op.or]: [
+          { name: { [Op.iLike]: `%${search}%` } },
+          { email: { [Op.iLike]: `%${search}%` } },
+        ] }, required: false } : {}),
+      },
+      {
+        model: Outlet,
+        as: "outlet",
+        attributes: ["id", "name", "address", "phone"],
+      },
+      {
+        model: Address,
+        as: "address",
+        attributes: ["id", "street_address", "city", "state", "pincode"],
+      },
+      {
+        model: OrderItem,
+        as: "orderItems",
+        include: [
+          {
+            model: MenuItem,
+            as: "menuItem",
+            attributes: ["id", "name", "base_price"],
+          },
+        ],
+      },
+    ];
+
+    // If searching, add order_number to main where OR make user required
+    if (search) {
+      where[Op.or] = [
+        { order_number: { [Op.iLike]: `%${search}%` } },
+        { '$user.name$': { [Op.iLike]: `%${search}%` } },
+        { '$user.email$': { [Op.iLike]: `%${search}%` } },
+      ];
+      // Reset the user include to not have its own where (use subquery instead)
+      include[0] = {
+        model: User,
+        as: "user",
+        attributes: ["id", "name", "email", "phone"],
+      };
+    }
+
     const { count, rows: orders } = await Order.findAndCountAll({
       where,
       attributes: [
@@ -1439,56 +1534,20 @@ router.get("/orders", adminAuth, async (req, res) => {
         "estimated_delivery_time", "actual_delivery_time", "preparation_time", 
         "delivery_time", "created_at", "updated_at"
       ],
-      include: [
-        {
-          model: User,
-          as: "user",
-          attributes: ["id", "name", "email", "phone"],
-        },
-        {
-          model: Outlet,
-          as: "outlet",
-          attributes: ["id", "name", "address", "phone"],
-        },
-        {
-          model: Address,
-          as: "address",
-          attributes: ["id", "street_address", "city", "state", "pincode"],
-        },
-        {
-          model: OrderItem,
-          as: "orderItems",
-          include: [
-            {
-              model: MenuItem,
-              as: "menuItem",
-              attributes: ["id", "name", "base_price"],
-            },
-          ],
-        },
-      ],
+      include,
       order: [["created_at", "DESC"]],
       limit: parseInt(limit),
       offset,
+      distinct: true,
+      subQuery: false,
     });
-
-    // Apply search filter after query (for order_number and customer name)
-    let filteredOrders = orders;
-    if (search) {
-      const searchTerm = search.toLowerCase();
-      filteredOrders = orders.filter(order => 
-        order.order_number.toLowerCase().includes(searchTerm) ||
-        order.user?.name?.toLowerCase().includes(searchTerm) ||
-        order.user?.email?.toLowerCase().includes(searchTerm)
-      );
-    }
 
     const totalPages = Math.ceil(count / parseInt(limit));
 
     res.json({
       success: true,
       data: {
-        orders: filteredOrders,
+        orders,
         pagination: {
           currentPage: parseInt(page),
           totalPages,
@@ -1502,7 +1561,7 @@ router.get("/orders", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch orders",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -1577,7 +1636,7 @@ router.get("/orders/:id", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch order details",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
@@ -1617,7 +1676,8 @@ router.put("/orders/:id/status", adminAuth, async (req, res) => {
     }
 
     // Update order status
-    await order.updateStatus(status, { restaurant: notes });
+    const restaurantNotes = notes ? (typeof notes === 'string' ? { text: notes } : notes) : undefined;
+    await order.updateStatus(status, restaurantNotes ? { restaurant: restaurantNotes } : {});
 
     res.json({
       success: true,
@@ -1633,7 +1693,6 @@ router.put("/orders/:id/status", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update order status",
-      error: error?.message,
     });
   }
 });
@@ -1665,7 +1724,11 @@ router.put("/orders/:id", adminAuth, async (req, res) => {
     if (preparation_time !== undefined) updateData.preparation_time = preparation_time;
     if (delivery_time !== undefined) updateData.delivery_time = delivery_time;
     if (restaurant_notes !== undefined) {
-      updateData.restaurant_notes = { ...order.restaurant_notes, ...restaurant_notes };
+      // Ensure restaurant_notes is an object before spreading
+      const notesObj = typeof restaurant_notes === 'string' 
+        ? { text: restaurant_notes } 
+        : restaurant_notes;
+      updateData.restaurant_notes = { ...(order.restaurant_notes || {}), ...notesObj };
     }
 
     await order.update(updateData);
@@ -1680,7 +1743,7 @@ router.put("/orders/:id", adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update order",
-      error: error?.message,
+      ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
   }
 });
