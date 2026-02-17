@@ -105,10 +105,11 @@ const sendEmail = async (to, templateName, data = {}) => {
       currentYear: new Date().getFullYear(),
     });
 
-    const fromAddress =
-      process.env.RESEND_FROM ||
-      process.env.SMTP_FROM ||
-      "Global-Eats <onboarding@resend.dev>";
+    // Resend requires a verified domain — use RESEND_FROM or default to onboarding@resend.dev
+    // SMTP can use any address (like gmail)
+    const fromAddress = useResend
+      ? process.env.RESEND_FROM || "Global-Eats <onboarding@resend.dev>"
+      : process.env.SMTP_FROM || "Global-Eats <noreply@example.com>";
 
     if (useResend) {
       // Send via Resend HTTP API (works on Render)
