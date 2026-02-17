@@ -2,9 +2,64 @@ const { sequelize } = require("./config/database");
 const fs = require("fs");
 const path = require("path");
 
+async function ensureMigrationsTable() {
+  const qi = sequelize.getQueryInterface();
+  // Create a tracking table if it doesn't exist
+  await sequelize.query(`
+    CREATE TABLE IF NOT EXISTS "_migrations" (
+      name VARCHAR(255) PRIMARY KEY,
+      run_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+  `);
+
+  // Backfill: if the DB has tables but no migration records, mark all existing migrations as done
+  const [migrationCount] = await sequelize.query(
+    `SELECT COUNT(*) as cnt FROM "_migrations";`
+  );
+  if (parseInt(migrationCount[0].cnt) === 0) {
+    // Check if the DB already has real tables (meaning migrations were already applied)
+    const [tables] = await sequelize.query(
+      `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename != '_migrations';`
+    );
+    if (tables.length > 0) {
+      console.log(
+        "📋 Backfilling migration tracking table for existing DB..."
+      );
+      const migrationsDir = path.join(__dirname, "migrations");
+      const migrationFiles = fs
+        .readdirSync(migrationsDir)
+        .filter((file) => file.endsWith(".js"))
+        .sort();
+      for (const file of migrationFiles) {
+        await recordMigration(file);
+      }
+      console.log(
+        `✅ Marked ${migrationFiles.length} existing migrations as applied`
+      );
+    }
+  }
+}
+
+async function getCompletedMigrations() {
+  const [results] = await sequelize.query(
+    `SELECT name FROM "_migrations" ORDER BY name;`
+  );
+  return new Set(results.map((r) => r.name));
+}
+
+async function recordMigration(name) {
+  await sequelize.query(
+    `INSERT INTO "_migrations" (name) VALUES (:name) ON CONFLICT DO NOTHING;`,
+    { replacements: { name } }
+  );
+}
+
 async function runMigrations() {
   try {
     console.log("🔄 Running database migrations...");
+
+    await ensureMigrationsTable();
+    const completed = await getCompletedMigrations();
 
     // Get all migration files in order
     const migrationsDir = path.join(__dirname, "migrations");
@@ -15,8 +70,14 @@ async function runMigrations() {
 
     console.log(`Found ${migrationFiles.length} migration files`);
 
+    let ran = 0;
     // Run each migration
     for (const file of migrationFiles) {
+      if (completed.has(file)) {
+        console.log(`⏭️  Skipping already-applied migration: ${file}`);
+        continue;
+      }
+
       console.log(`📄 Running migration: ${file}`);
       const migration = require(path.join(migrationsDir, file));
 
@@ -25,13 +86,19 @@ async function runMigrations() {
           sequelize.getQueryInterface(),
           sequelize.constructor
         );
+        await recordMigration(file);
+        ran++;
         console.log(`✅ Migration ${file} completed`);
       } else {
         console.warn(`⚠️  Migration ${file} has no 'up' method`);
       }
     }
 
-    console.log("✅ All migrations completed successfully");
+    console.log(
+      ran > 0
+        ? `✅ ${ran} migration(s) applied successfully`
+        : "✅ Database is up to date — no new migrations"
+    );
   } catch (error) {
     console.error("❌ Migration failed:", error.message);
     throw error;
