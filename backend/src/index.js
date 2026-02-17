@@ -72,6 +72,8 @@ app.use(
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.APP_URL,
+  "https://frontend-git-main-itskartikes-projects.vercel.app",
+  "https://frontend-itskartikes-projects.vercel.app",
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
@@ -84,9 +86,13 @@ app.use(
       // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.some((allowed) => origin.startsWith(allowed))) {
+      if (
+        allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
+        origin.endsWith(".vercel.app")
+      ) {
         callback(null, true);
       } else {
+        console.warn(`CORS blocked origin: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
