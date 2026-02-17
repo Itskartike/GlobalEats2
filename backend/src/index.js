@@ -92,12 +92,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
 
       if (
         allowedOrigins.some((allowed) => origin.startsWith(allowed)) ||
-        origin.endsWith(".vercel.app")
+        origin.endsWith(".vercel.app") ||
+        origin.endsWith(".globaleats.tech")
       ) {
         callback(null, true);
       } else {
