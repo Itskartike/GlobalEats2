@@ -316,8 +316,9 @@ const refreshToken = async (req, res) => {
       });
     }
 
-    // Verify refresh token
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    // Verify refresh token (uses separate refresh secret)
+    const refreshSecret = (process.env.JWT_SECRET || '') + '_refresh';
+    const decoded = jwt.verify(refreshToken, refreshSecret);
 
     if (decoded.type !== "refresh") {
       return res.status(401).json({

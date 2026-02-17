@@ -2,15 +2,19 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs').promises;
 
-// Create transporter
+// Create transporter — auto-detect SSL based on port
+const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: false, // true for 465, false for other ports
+  port: smtpPort,
+  secure: smtpPort === 465, // true for 465 (SSL), false for 587 (STARTTLS)
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
-  }
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 });
 
 // Email templates
@@ -80,7 +84,7 @@ const sendEmail = async (to, templateName, data = {}) => {
 
     const html = replacePlaceholders(htmlTemplate, {
       ...data,
-      appUrl: process.env.APP_URL,
+      appUrl: getFrontendUrl(),
       currentYear: new Date().getFullYear()
     });
 
@@ -112,7 +116,7 @@ const sendWelcomeEmail = async (user) => {
   const data = {
     userName: user.name,
     userEmail: user.email,
-    verificationLink: `${process.env.APP_URL}/verify-email?token=${user.verification_token}`
+    verificationLink: `${getFrontendUrl()}/verify-email?token=${user.verification_token}`
   };
   
   return sendEmail(user.email, 'welcome', data);
@@ -156,12 +160,17 @@ const sendOrderStatusUpdateEmail = async (order, user, status) => {
   return sendEmail(user.email, 'orderStatusUpdate', data);
 };
 
+// Helper to get frontend URL for email links
+const getFrontendUrl = () => {
+  return process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000';
+};
+
 // Send password reset email
 const sendPasswordResetEmail = async (user, resetToken) => {
   const data = {
     userName: user.name,
-    resetLink: `${process.env.APP_URL}/reset-password?token=${resetToken}`,
-    expiryTime: '1 hour'
+    resetLink: `${getFrontendUrl()}/reset-password?token=${resetToken}`,
+    expiryTime: '10 minutes'
   };
   
   return sendEmail(user.email, 'passwordReset', data);
@@ -171,7 +180,7 @@ const sendPasswordResetEmail = async (user, resetToken) => {
 const sendEmailVerificationEmail = async (user, verificationToken) => {
   const data = {
     userName: user.name,
-    verificationLink: `${process.env.APP_URL}/verify-email?token=${verificationToken}`
+    verificationLink: `${getFrontendUrl()}/verify-email?token=${verificationToken}`
   };
   
   return sendEmail(user.email, 'emailVerification', data);

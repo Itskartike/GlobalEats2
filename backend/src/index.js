@@ -52,8 +52,8 @@ const PORT = process.env.PORT || 5000;
 
 // Trust proxy — required when behind a reverse proxy (Render, Heroku, nginx, etc.)
 // This ensures rate limiting uses the real client IP from X-Forwarded-For
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
 }
 
 // Serve static files (uploads)
@@ -250,15 +250,19 @@ const initializeServer = async () => {
 
     // Test email configuration (non-blocking — don't prevent server from starting)
     testEmailConfig().catch((err) => {
-      console.warn('⚠️  Email configuration failed:', err.message);
-      console.warn('   Email features will not work until SMTP is configured correctly.');
+      console.warn("⚠️  Email configuration failed:", err.message);
+      console.warn(
+        "   Email features will not work until SMTP is configured correctly."
+      );
     });
 
     // Start server
     app.listen(PORT, () => {
       console.log(`🚀 GlobalEats API server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`📧 Email configured: ${process.env.SMTP_USER ? "YES" : "NO"}`);
+      console.log(
+        `📧 Email configured: ${process.env.SMTP_USER ? "YES" : "NO"}`
+      );
     });
   } catch (error) {
     console.error("❌ Failed to initialize server:", error);
