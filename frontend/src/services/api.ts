@@ -1,7 +1,7 @@
 import axios from "axios";
 import TokenManager from "../utils/tokenManager";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "https://globaleats-api.onrender.com/api";
 
 export const api = axios.create({
   baseURL: API_URL,

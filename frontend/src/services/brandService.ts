@@ -157,6 +157,23 @@ export const brandService = {
     return response.data.data;
   },
 
+  // Get brand menu (all items for a brand)
+  getBrandMenu: async (
+    brandIdOrSlug: string,
+    category?: string
+  ): Promise<{
+    brand: ApiBrand;
+    categories: {
+      name: string;
+      items: any[];
+    }[];
+    totalItems: number;
+  }> => {
+    const params = category ? { category } : {};
+    const response = await api.get(`/brands/${brandIdOrSlug}/menu`, { params });
+    return response.data.data;
+  },
+
   // Search brands (for future use)
   searchBrands: async (
     query: string,

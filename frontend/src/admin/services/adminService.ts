@@ -313,13 +313,16 @@ class AdminService {
     }
   }
 
-  async updateCategory(categoryId: string, data: {
-    name: string;
-    description?: string;
-    image_url?: string;
-    is_active: boolean;
-    sort_order: number;
-  }) {
+  async updateCategory(
+    categoryId: string,
+    data: {
+      name: string;
+      description?: string;
+      image_url?: string;
+      is_active: boolean;
+      sort_order: number;
+    }
+  ) {
     try {
       const response = await api.put(`/admin/categories/${categoryId}`, data);
       return response.data;
@@ -358,7 +361,8 @@ class AdminService {
     try {
       const params = new URLSearchParams();
       if (filters?.brand_id) params.append("brand_id", filters.brand_id);
-      if (filters?.category_id) params.append("category_id", filters.category_id);
+      if (filters?.category_id)
+        params.append("category_id", filters.category_id);
       if (filters?.search) params.append("search", filters.search);
 
       const response = await api.get(`/admin/menu-items?${params}`);
@@ -404,22 +408,25 @@ class AdminService {
     }
   }
 
-  async updateMenuItem(menuItemId: string, data: {
-    brand_id: string;
-    category_id: string;
-    name: string;
-    description?: string;
-    image_url?: string;
-    base_price: number;
-    is_vegetarian: boolean;
-    is_vegan: boolean;
-    is_gluten_free: boolean;
-    spice_level: number;
-    calories?: number;
-    preparation_time?: number;
-    is_available: boolean;
-    sort_order: number;
-  }) {
+  async updateMenuItem(
+    menuItemId: string,
+    data: {
+      brand_id: string;
+      category_id: string;
+      name: string;
+      description?: string;
+      image_url?: string;
+      base_price: number;
+      is_vegetarian: boolean;
+      is_vegan: boolean;
+      is_gluten_free: boolean;
+      spice_level: number;
+      calories?: number;
+      preparation_time?: number;
+      is_available: boolean;
+      sort_order: number;
+    }
+  ) {
     try {
       const response = await api.put(`/admin/menu-items/${menuItemId}`, data);
       return response.data;
@@ -519,13 +526,16 @@ class AdminService {
     }
   }
 
-  async updateOrder(orderId: string, data: {
-    special_instructions?: string;
-    restaurant_notes?: any;
-    estimated_delivery_time?: string;
-    preparation_time?: number;
-    delivery_time?: number;
-  }) {
+  async updateOrder(
+    orderId: string,
+    data: {
+      special_instructions?: string;
+      restaurant_notes?: any;
+      estimated_delivery_time?: string;
+      preparation_time?: number;
+      delivery_time?: number;
+    }
+  ) {
     try {
       const response = await api.put(`/admin/orders/${orderId}`, data);
       return response.data;
@@ -542,7 +552,9 @@ class AdminService {
 
   async getOrderAnalytics(period: "today" | "week" | "month" = "today") {
     try {
-      const response = await api.get(`/admin/orders/analytics?period=${period}`);
+      const response = await api.get(
+        `/admin/orders/analytics?period=${period}`
+      );
       return response.data;
     } catch (error: unknown) {
       console.error("Order analytics error:", error);

@@ -60,24 +60,20 @@ export const BrandMenu: React.FC = () => {
       setLoading(true);
 
       // Fetch both menu and brand details with outlets
-      const [menuResponse, brandDetails] = await Promise.all([
-        fetch(`http://localhost:5000/api/brands/${brandSlug}/menu`),
+      const [menuData, brandDetails] = await Promise.all([
+        brandService.getBrandMenu(brandSlug!),
         brandService.getBrandBySlug(brandSlug!),
       ]);
 
-      const menuData = await menuResponse.json();
-
-      if (menuData.success) {
-        setBrand(menuData.data.brand);
-        setCategories(menuData.data.categories);
+      if (menuData) {
+        setBrand(menuData.brand as unknown as BrandInfo);
+        setCategories(menuData.categories as unknown as MenuCategory[]);
 
         // Transform and store brand details with outlets
         const transformedBrand = transformApiBrandToBrand(brandDetails);
         setFullBrandDetails(transformedBrand);
 
         setError(null);
-      } else {
-        throw new Error(menuData.message || "Failed to fetch menu");
       }
     } catch (err) {
       console.error("Error fetching brand menu:", err);

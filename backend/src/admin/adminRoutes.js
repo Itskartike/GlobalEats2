@@ -119,7 +119,13 @@ router.get("/dashboard", adminAuth, async (req, res) => {
     const recentOrders = await Order.findAll({
       limit: 10,
       order: [["created_at", "DESC"]],
-      attributes: ["id", "order_number", "status", "total_amount", "created_at"],
+      attributes: [
+        "id",
+        "order_number",
+        "status",
+        "total_amount",
+        "created_at",
+      ],
       include: [
         {
           model: User,
@@ -285,7 +291,9 @@ router.put("/outlets/:id", adminAuth, async (req, res) => {
       email: email || null,
       opening_time,
       closing_time,
-      delivery_radius: delivery_radius ? parseFloat(delivery_radius) : outlet.delivery_radius,
+      delivery_radius: delivery_radius
+        ? parseFloat(delivery_radius)
+        : outlet.delivery_radius,
       is_active,
     });
 
@@ -331,7 +339,7 @@ router.delete("/outlets/:id", adminAuth, async (req, res) => {
     const activeOrdersCount = await Order.count({
       where: {
         outlet_id: id,
-        status: { [Op.notIn]: ['delivered', 'cancelled', 'refunded'] },
+        status: { [Op.notIn]: ["delivered", "cancelled", "refunded"] },
       },
     });
     if (activeOrdersCount > 0) {
@@ -410,7 +418,7 @@ router.post("/brands", adminAuth, async (req, res) => {
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-");
-    
+
     // Check if slug already exists and make it unique
     let counter = 1;
     let originalSlug = slug;
@@ -494,12 +502,14 @@ router.put("/brands/:id", adminAuth, async (req, res) => {
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, "")
         .replace(/\s+/g, "-");
-      
+
       // Check if slug already exists and make it unique
       let counter = 1;
       let originalSlug = slug;
       while (true) {
-        const existingBrand = await Brand.findOne({ where: { slug, id: { [Op.ne]: id } } });
+        const existingBrand = await Brand.findOne({
+          where: { slug, id: { [Op.ne]: id } },
+        });
         if (!existingBrand) break;
         slug = `${originalSlug}-${counter}`;
         counter++;
@@ -513,7 +523,9 @@ router.put("/brands/:id", adminAuth, async (req, res) => {
       logo_url,
       banner_url,
       cuisine_type,
-      estimated_delivery_time: delivery_time ? parseInt(delivery_time) : brand.estimated_delivery_time,
+      estimated_delivery_time: delivery_time
+        ? parseInt(delivery_time)
+        : brand.estimated_delivery_time,
       is_active,
     });
 
@@ -869,8 +881,20 @@ router.get("/categories", adminAuth, async (req, res) => {
 
     const categories = await Category.findAll({
       where,
-      order: [["sort_order", "ASC"], ["name", "ASC"]],
-      attributes: ["id", "name", "description", "image_url", "is_active", "sort_order", "created_at", "updated_at"],
+      order: [
+        ["sort_order", "ASC"],
+        ["name", "ASC"],
+      ],
+      attributes: [
+        "id",
+        "name",
+        "description",
+        "image_url",
+        "is_active",
+        "sort_order",
+        "created_at",
+        "updated_at",
+      ],
     });
 
     res.json({
@@ -948,8 +972,8 @@ router.put("/categories/:id", adminAuth, async (req, res) => {
 
     // Check if name is being changed and if it conflicts
     if (name && name !== category.name) {
-      const existingCategory = await Category.findOne({ 
-        where: { name, id: { [Op.ne]: id } } 
+      const existingCategory = await Category.findOne({
+        where: { name, id: { [Op.ne]: id } },
       });
       if (existingCategory) {
         return res.status(400).json({
@@ -961,7 +985,8 @@ router.put("/categories/:id", adminAuth, async (req, res) => {
 
     await category.update({
       name: name || category.name,
-      description: description !== undefined ? description : category.description,
+      description:
+        description !== undefined ? description : category.description,
       image_url: image_url !== undefined ? image_url : category.image_url,
       is_active: is_active !== undefined ? is_active : category.is_active,
       sort_order: sort_order !== undefined ? sort_order : category.sort_order,
@@ -1025,7 +1050,13 @@ router.delete("/categories/:id", adminAuth, async (req, res) => {
 // GET /admin/menu-items - Get all menu items with filters
 router.get("/menu-items", adminAuth, async (req, res) => {
   try {
-    const { brand_id, category_id, search, page, limit: queryLimit } = req.query;
+    const {
+      brand_id,
+      category_id,
+      search,
+      page,
+      limit: queryLimit,
+    } = req.query;
     const where = {};
 
     if (brand_id) {
@@ -1056,7 +1087,10 @@ router.get("/menu-items", adminAuth, async (req, res) => {
           attributes: ["id", "name"],
         },
       ],
-      order: [["sort_order", "ASC"], ["name", "ASC"]],
+      order: [
+        ["sort_order", "ASC"],
+        ["name", "ASC"],
+      ],
       attributes: [
         "id",
         "brand_id",
@@ -1243,7 +1277,11 @@ router.put("/menu-items/:id", adminAuth, async (req, res) => {
     // Check if name is being changed and if it conflicts
     if (name && name !== menuItem.name) {
       const existingMenuItem = await MenuItem.findOne({
-        where: { name, brand_id: brand_id || menuItem.brand_id, id: { [Op.ne]: id } },
+        where: {
+          name,
+          brand_id: brand_id || menuItem.brand_id,
+          id: { [Op.ne]: id },
+        },
       });
       if (existingMenuItem) {
         return res.status(400).json({
@@ -1257,16 +1295,25 @@ router.put("/menu-items/:id", adminAuth, async (req, res) => {
       brand_id: brand_id || menuItem.brand_id,
       category_id: category_id || menuItem.category_id,
       name: name || menuItem.name,
-      description: description !== undefined ? description : menuItem.description,
+      description:
+        description !== undefined ? description : menuItem.description,
       image_url: image_url !== undefined ? image_url : menuItem.image_url,
-      base_price: base_price !== undefined ? parseFloat(base_price) : menuItem.base_price,
-      is_vegetarian: is_vegetarian !== undefined ? is_vegetarian : menuItem.is_vegetarian,
+      base_price:
+        base_price !== undefined ? parseFloat(base_price) : menuItem.base_price,
+      is_vegetarian:
+        is_vegetarian !== undefined ? is_vegetarian : menuItem.is_vegetarian,
       is_vegan: is_vegan !== undefined ? is_vegan : menuItem.is_vegan,
-      is_gluten_free: is_gluten_free !== undefined ? is_gluten_free : menuItem.is_gluten_free,
-      spice_level: spice_level !== undefined ? spice_level : menuItem.spice_level,
+      is_gluten_free:
+        is_gluten_free !== undefined ? is_gluten_free : menuItem.is_gluten_free,
+      spice_level:
+        spice_level !== undefined ? spice_level : menuItem.spice_level,
       calories: calories !== undefined ? calories : menuItem.calories,
-      preparation_time: preparation_time !== undefined ? preparation_time : menuItem.preparation_time,
-      is_available: is_available !== undefined ? is_available : menuItem.is_available,
+      preparation_time:
+        preparation_time !== undefined
+          ? preparation_time
+          : menuItem.preparation_time,
+      is_available:
+        is_available !== undefined ? is_available : menuItem.is_available,
       sort_order: sort_order !== undefined ? sort_order : menuItem.sort_order,
     });
 
@@ -1320,10 +1367,10 @@ router.delete("/menu-items/:id", adminAuth, async (req, res) => {
 router.get("/orders/analytics", adminAuth, async (req, res) => {
   try {
     const { period = "today" } = req.query;
-    
+
     let dateFilter = {};
     const now = new Date();
-    
+
     switch (period) {
       case "today": {
         const startOfDay = new Date(now);
@@ -1359,7 +1406,7 @@ router.get("/orders/analytics", adminAuth, async (req, res) => {
     `;
     const statusCounts = await sequelize.query(statusCountsQuery, {
       replacements: { dateFilter: dateFilter[Op.gte] },
-      type: QueryTypes.SELECT
+      type: QueryTypes.SELECT,
     });
 
     // Get total revenue using raw SQL
@@ -1371,7 +1418,7 @@ router.get("/orders/analytics", adminAuth, async (req, res) => {
     `;
     const revenueResult = await sequelize.query(revenueQuery, {
       replacements: { dateFilter: dateFilter[Op.gte] },
-      type: QueryTypes.SELECT
+      type: QueryTypes.SELECT,
     });
 
     // Get average order value using raw SQL
@@ -1383,7 +1430,7 @@ router.get("/orders/analytics", adminAuth, async (req, res) => {
     `;
     const avgOrderValue = await sequelize.query(avgOrderValueQuery, {
       replacements: { dateFilter: dateFilter[Op.gte] },
-      type: QueryTypes.SELECT
+      type: QueryTypes.SELECT,
     });
 
     // Get orders by outlet using raw SQL
@@ -1401,27 +1448,27 @@ router.get("/orders/analytics", adminAuth, async (req, res) => {
     `;
     const outletStats = await sequelize.query(outletStatsQuery, {
       replacements: { dateFilter: dateFilter[Op.gte] },
-      type: QueryTypes.SELECT
+      type: QueryTypes.SELECT,
     });
 
     res.json({
       success: true,
       data: {
         period,
-        statusCounts: statusCounts.map(item => ({
+        statusCounts: statusCounts.map((item) => ({
           status: item.status,
-          count: item.count.toString()
+          count: item.count.toString(),
         })),
         totalRevenue: parseFloat(revenueResult[0]?.total_revenue || 0),
         averageOrderValue: parseFloat(avgOrderValue[0]?.avg_value || 0),
-        outletStats: outletStats.map(item => ({
+        outletStats: outletStats.map((item) => ({
           outlet_id: item.outlet_id,
           order_count: item.order_count.toString(),
           revenue: item.revenue.toString(),
           outlet: {
             id: item.outlet_id,
-            name: item.outlet_name
-          }
+            name: item.outlet_name,
+          },
         })),
       },
     });
@@ -1438,16 +1485,16 @@ router.get("/orders/analytics", adminAuth, async (req, res) => {
 // GET /admin/orders - Get all orders with filters
 router.get("/orders", adminAuth, async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      status, 
-      outlet_id, 
-      user_id, 
-      search, 
-      date_from, 
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      outlet_id,
+      user_id,
+      search,
+      date_from,
       date_to,
-      order_type 
+      order_type,
     } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -1482,10 +1529,17 @@ router.get("/orders", adminAuth, async (req, res) => {
         model: User,
         as: "user",
         attributes: ["id", "name", "email", "phone"],
-        ...(search ? { where: { [Op.or]: [
-          { name: { [Op.iLike]: `%${search}%` } },
-          { email: { [Op.iLike]: `%${search}%` } },
-        ] }, required: false } : {}),
+        ...(search
+          ? {
+              where: {
+                [Op.or]: [
+                  { name: { [Op.iLike]: `%${search}%` } },
+                  { email: { [Op.iLike]: `%${search}%` } },
+                ],
+              },
+              required: false,
+            }
+          : {}),
       },
       {
         model: Outlet,
@@ -1514,8 +1568,8 @@ router.get("/orders", adminAuth, async (req, res) => {
     if (search) {
       where[Op.or] = [
         { order_number: { [Op.iLike]: `%${search}%` } },
-        { '$user.name$': { [Op.iLike]: `%${search}%` } },
-        { '$user.email$': { [Op.iLike]: `%${search}%` } },
+        { "$user.name$": { [Op.iLike]: `%${search}%` } },
+        { "$user.email$": { [Op.iLike]: `%${search}%` } },
       ];
       // Reset the user include to not have its own where (use subquery instead)
       include[0] = {
@@ -1528,11 +1582,24 @@ router.get("/orders", adminAuth, async (req, res) => {
     const { count, rows: orders } = await Order.findAndCountAll({
       where,
       attributes: [
-        "id", "order_number", "status", "order_type", "subtotal", 
-        "delivery_fee", "tax_amount", "discount_amount", "total_amount", 
-        "payment_status", "payment_method", "special_instructions", 
-        "estimated_delivery_time", "actual_delivery_time", "preparation_time", 
-        "delivery_time", "created_at", "updated_at"
+        "id",
+        "order_number",
+        "status",
+        "order_type",
+        "subtotal",
+        "delivery_fee",
+        "tax_amount",
+        "discount_amount",
+        "total_amount",
+        "payment_status",
+        "payment_method",
+        "special_instructions",
+        "estimated_delivery_time",
+        "actual_delivery_time",
+        "preparation_time",
+        "delivery_time",
+        "created_at",
+        "updated_at",
       ],
       include,
       order: [["created_at", "DESC"]],
@@ -1573,11 +1640,25 @@ router.get("/orders/:id", adminAuth, async (req, res) => {
 
     const order = await Order.findByPk(id, {
       attributes: [
-        "id", "order_number", "status", "order_type", "subtotal", 
-        "delivery_fee", "tax_amount", "discount_amount", "total_amount", 
-        "payment_status", "payment_method", "special_instructions", 
-        "estimated_delivery_time", "actual_delivery_time", "preparation_time", 
-        "delivery_time", "created_at", "updated_at", "restaurant_notes"
+        "id",
+        "order_number",
+        "status",
+        "order_type",
+        "subtotal",
+        "delivery_fee",
+        "tax_amount",
+        "discount_amount",
+        "total_amount",
+        "payment_status",
+        "payment_method",
+        "special_instructions",
+        "estimated_delivery_time",
+        "actual_delivery_time",
+        "preparation_time",
+        "delivery_time",
+        "created_at",
+        "updated_at",
+        "restaurant_notes",
       ],
       include: [
         {
@@ -1593,7 +1674,14 @@ router.get("/orders/:id", adminAuth, async (req, res) => {
         {
           model: Address,
           as: "address",
-          attributes: ["id", "street_address", "city", "state", "pincode", "landmark"],
+          attributes: [
+            "id",
+            "street_address",
+            "city",
+            "state",
+            "pincode",
+            "landmark",
+          ],
         },
         {
           model: OrderItem,
@@ -1664,10 +1752,17 @@ router.put("/orders/:id/status", adminAuth, async (req, res) => {
 
     // Validate status transition
     const validStatuses = [
-      "pending", "confirmed", "preparing", "ready", 
-      "picked_up", "out_for_delivery", "delivered", "cancelled", "refunded"
+      "pending",
+      "confirmed",
+      "preparing",
+      "ready",
+      "picked_up",
+      "out_for_delivery",
+      "delivered",
+      "cancelled",
+      "refunded",
     ];
-    
+
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -1676,8 +1771,15 @@ router.put("/orders/:id/status", adminAuth, async (req, res) => {
     }
 
     // Update order status
-    const restaurantNotes = notes ? (typeof notes === 'string' ? { text: notes } : notes) : undefined;
-    await order.updateStatus(status, restaurantNotes ? { restaurant: restaurantNotes } : {});
+    const restaurantNotes = notes
+      ? typeof notes === "string"
+        ? { text: notes }
+        : notes
+      : undefined;
+    await order.updateStatus(
+      status,
+      restaurantNotes ? { restaurant: restaurantNotes } : {}
+    );
 
     res.json({
       success: true,
@@ -1701,12 +1803,12 @@ router.put("/orders/:id/status", adminAuth, async (req, res) => {
 router.put("/orders/:id", adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      special_instructions, 
-      restaurant_notes, 
+    const {
+      special_instructions,
+      restaurant_notes,
       estimated_delivery_time,
       preparation_time,
-      delivery_time 
+      delivery_time,
     } = req.body;
 
     const order = await Order.findByPk(id);
@@ -1719,16 +1821,23 @@ router.put("/orders/:id", adminAuth, async (req, res) => {
 
     // Update order details
     const updateData = {};
-    if (special_instructions !== undefined) updateData.special_instructions = special_instructions;
-    if (estimated_delivery_time !== undefined) updateData.estimated_delivery_time = estimated_delivery_time;
-    if (preparation_time !== undefined) updateData.preparation_time = preparation_time;
+    if (special_instructions !== undefined)
+      updateData.special_instructions = special_instructions;
+    if (estimated_delivery_time !== undefined)
+      updateData.estimated_delivery_time = estimated_delivery_time;
+    if (preparation_time !== undefined)
+      updateData.preparation_time = preparation_time;
     if (delivery_time !== undefined) updateData.delivery_time = delivery_time;
     if (restaurant_notes !== undefined) {
       // Ensure restaurant_notes is an object before spreading
-      const notesObj = typeof restaurant_notes === 'string' 
-        ? { text: restaurant_notes } 
-        : restaurant_notes;
-      updateData.restaurant_notes = { ...(order.restaurant_notes || {}), ...notesObj };
+      const notesObj =
+        typeof restaurant_notes === "string"
+          ? { text: restaurant_notes }
+          : restaurant_notes;
+      updateData.restaurant_notes = {
+        ...(order.restaurant_notes || {}),
+        ...notesObj,
+      };
     }
 
     await order.update(updateData);
@@ -1747,6 +1856,5 @@ router.put("/orders/:id", adminAuth, async (req, res) => {
     });
   }
 });
-
 
 module.exports = router;
