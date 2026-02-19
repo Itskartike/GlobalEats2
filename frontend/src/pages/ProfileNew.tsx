@@ -393,14 +393,14 @@ export const Profile: React.FC = () => {
     setIsSaving(true);
     try {
       // Only include image if it's changed and not too large
-      const updateData = {
+      const updateData: any = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
       };
 
       // Only add profile_image if it's changed
-      if (imagePreview && imagePreview !== user.profile_image) {
+      if (user && imagePreview && imagePreview !== user.profile_image) {
         // Check if image is too large (base64 strings can be very large)
         if (imagePreview.length > 1000000) {
           // ~1MB limit for base64
@@ -617,15 +617,16 @@ export const Profile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
+    <div className="min-h-screen bg-stone-50 pb-24 md:pb-8">
+      {/* Hero Header - Mobile Optimized */}
+      <div className="bg-gradient-to-br from-orange-500 to-rose-500 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/5" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+          <div className="flex flex-col md:flex-row items-center md:justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
               {/* Profile Picture */}
-              <div className="relative">
-                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center overflow-hidden border-4 border-white/30">
+              <div className="relative group">
+                <div className="w-28 h-28 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center overflow-hidden border-4 border-white/30 shadow-xl">
                   {imagePreview ? (
                     <img
                       src={imagePreview}
@@ -637,7 +638,7 @@ export const Profile: React.FC = () => {
                   )}
                 </div>
                 {isEditing && (
-                  <label className="absolute bottom-0 right-0 bg-white text-orange-500 p-2 rounded-full cursor-pointer hover:bg-orange-50 transition-colors shadow-lg">
+                  <label className="absolute bottom-1 right-1 bg-white text-orange-600 p-2.5 rounded-full cursor-pointer hover:bg-orange-50 transition-all shadow-lg active:scale-95">
                     <Camera className="w-4 h-4" />
                     <input
                       type="file"
@@ -650,33 +651,29 @@ export const Profile: React.FC = () => {
               </div>
 
               <div>
-                <h1 className="text-3xl font-bold">{user.name}</h1>
-                <p className="text-orange-100 text-lg">{user.email}</p>
-                <div className="flex items-center mt-2 text-orange-100">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <span>
-                    Member since{" "}
-                    {new Date(
-                      user.created_at || Date.now()
-                    ).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex items-center mt-1 text-orange-100">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{user.name}</h1>
+                <p className="text-orange-100 text-base mb-2">{user.email}</p>
+                
+                <div className="flex flex-wrap justify-center md:justify-start gap-3 text-sm">
+                  <div className="flex items-center bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">
+                    <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Joined {new Date(user.created_at || Date.now()).toLocaleDateString()}</span>
+                  </div>
+                  
                   {user.is_verified ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-300" />
-                      <span>Verified Account</span>
-                    </>
+                     <div className="flex items-center bg-green-500/20 px-3 py-1 rounded-full backdrop-blur-md border border-green-500/20">
+                      <CheckCircle className="w-3.5 h-3.5 mr-1.5 text-green-300" />
+                      <span className="text-green-50 font-medium">Verified</span>
+                    </div>
                   ) : (
-                    <>
-                      <XCircle className="w-4 h-4 mr-2 text-yellow-300" />
-                      <span>Account Not Verified</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-3 border-white text-white hover:bg-white hover:text-orange-600"
+                    <div className="flex items-center gap-2">
+                       <div className="flex items-center bg-yellow-500/20 px-3 py-1 rounded-full backdrop-blur-md border border-yellow-500/20">
+                        <XCircle className="w-3.5 h-3.5 mr-1.5 text-yellow-300" />
+                        <span className="text-yellow-50 font-medium">Unverified</span>
+                      </div>
+                      <button
                         onClick={async () => {
-                          try {
+                           try {
                             const resp = await fetch(
                               `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/send-verification-email`,
                               {
@@ -691,18 +688,17 @@ export const Profile: React.FC = () => {
                             if (data.success) {
                               toast.success("Verification email sent");
                             } else {
-                              toast.error(
-                                data.message || "Failed to send email"
-                              );
+                              toast.error(data.message || "Failed to sent");
                             }
                           } catch (e) {
                             toast.error("Failed to send verification email");
                           }
                         }}
+                        className="text-xs underline text-white hover:text-orange-100"
                       >
-                        Verify email
-                      </Button>
-                    </>
+                        Verify Now
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -711,7 +707,7 @@ export const Profile: React.FC = () => {
             <Button
               onClick={handleLogout}
               variant="outline"
-              className="border-white text-white hover:bg-white hover:text-orange-500"
+              className="border-white/30 text-white hover:bg-white hover:text-orange-600 backdrop-blur-sm bg-white/10"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -720,68 +716,77 @@ export const Profile: React.FC = () => {
         </div>
       </div>
 
+      {/* Mobile Sticky Tab Navigation */}
+      <div className="lg:hidden sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm overflow-x-auto scrollbar-hide">
+        <div className="flex min-w-full p-2 gap-2">
+          {[
+            { id: "profile", label: "Profile", icon: User },
+            { id: "orders", label: "Orders", icon: ShoppingBag },
+            { id: "notifications", label: "Alerts", icon: Bell },
+            { id: "security", label: "Security", icon: Shield },
+            { id: "transactions", label: "Wallet", icon: CreditCard },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                activeTab === tab.id
+                  ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-500/20"
+                  : "bg-gray-50 text-gray-600 border border-gray-100"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
-          {/* Sidebar Navigation */}
-          <div className="lg:col-span-1">
-            <Card className="p-5 md:p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Account Settings
+          {/* Desktop Sidebar Navigation - Hidden on Mobile */}
+          <div className="hidden lg:block lg:col-span-1">
+            <Card className="p-5 md:p-6 shadow-lg border-0 ring-1 ring-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 px-2">
+                Account
               </h3>
-              <nav className="space-y-2">
+              <nav className="space-y-1">
                 {[
                   { id: "profile", label: "Profile Info", icon: User },
                   { id: "security", label: "Security", icon: Shield },
                   { id: "notifications", label: "Notifications", icon: Bell },
                   { id: "orders", label: "My Orders", icon: ShoppingBag },
-                  {
-                    id: "transactions",
-                    label: "Transactions",
-                    icon: CreditCard,
-                  },
+                  { id: "transactions", label: "Transactions", icon: CreditCard },
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() =>
-                      setActiveTab(
-                        tab.id as
-                          | "profile"
-                          | "security"
-                          | "notifications"
-                          | "orders"
-                          | "transactions"
-                      )
-                    }
-                    className={`w-full flex items-center px-3 py-2 text-left rounded-lg transition-colors ${
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`w-full flex items-center px-4 py-3 text-left rounded-xl transition-all duration-200 ${
                       activeTab === tab.id
-                        ? "bg-orange-100 text-orange-700 font-medium"
-                        : "text-gray-600 hover:bg-gray-50"
+                        ? "bg-orange-50 text-orange-700 font-semibold shadow-sm"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                   >
-                    <tab.icon className="w-5 h-5 mr-3" />
+                    <tab.icon className={`w-5 h-5 mr-3 ${activeTab === tab.id ? "text-orange-500" : "text-gray-400"}`} />
                     {tab.label}
                   </button>
                 ))}
               </nav>
 
               {/* Quick Stats */}
-              <div className="mt-8 space-y-4">
-                <h4 className="text-sm font-medium text-gray-900">
-                  Quick Stats
+              <div className="mt-8 pt-6 border-t border-gray-100 px-2 space-y-4">
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Overview
                 </h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Orders</span>
-                    <span className="font-medium">12</span>
+                    <span className="text-gray-600 flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-gray-400"/> Orders</span>
+                    <span className="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md">12</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Favorites</span>
-                    <span className="font-medium">8</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Reviews</span>
-                    <span className="font-medium">5</span>
+                    <span className="text-gray-600 flex items-center gap-2"><CreditCard className="w-4 h-4 text-gray-400"/> Spent</span>
+                    <span className="font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md">₹4.2k</span>
                   </div>
                 </div>
               </div>
@@ -790,15 +795,21 @@ export const Profile: React.FC = () => {
 
           {/* Main Content Area */}
           <div className="lg:col-span-3">
-            <Card className="shadow-lg">
-              {/* Profile Tab */}
-              {activeTab === "profile" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="p-5 md:p-6"
-                >
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="shadow-lg border-0 ring-1 ring-gray-100 overflow-hidden md:rounded-2xl rounded-none md:shadow-md shadow-none bg-transparent md:bg-white">
+                {/* Profile Tab */}
+                {activeTab === "profile" && (
+                  <div className="p-0 md:p-6 space-y-6">
+                    <div className="md:hidden flex items-center gap-2 mb-4 px-4">
+                       <User className="w-5 h-5 text-orange-500" />
+                       <h2 className="text-lg font-bold text-gray-900">Personal Info</h2>
+                    </div>
+                  
                   {/* Header with Edit Button */}
                   <div className="flex items-center justify-between mb-8">
                     <div>
@@ -980,7 +991,7 @@ export const Profile: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Security Tab */}
@@ -1776,6 +1787,7 @@ export const Profile: React.FC = () => {
                 </motion.div>
               )}
             </Card>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -1784,7 +1796,7 @@ export const Profile: React.FC = () => {
       <OrderDetailsModal
         isOpen={isOrderModalOpen}
         onClose={handleCloseOrderModal}
-        order={selectedOrder}
+        order={selectedOrder as any}
         onCancelOrder={handleCancelOrder}
         onRateOrder={handleRateOrder}
       />
