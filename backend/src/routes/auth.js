@@ -40,8 +40,8 @@ const registerValidation = [
     ),
   body("role")
     .optional()
-    .isIn(["customer", "restaurant", "delivery", "admin"])
-    .withMessage("Invalid role"),
+    .isIn(["customer"])
+    .withMessage("Invalid role. Use /api/vendor/register for vendor registration."),
 ];
 
 // Login validation

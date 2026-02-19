@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminOutlets from "./pages/AdminOutlets";
-import AdminBrands from "./pages/AdminBrands";
 import AdminOrders from "./pages/AdminOrders";
 import AdminUsers from "./pages/AdminUsers";
-import AdminOutletBrands from "./pages/AdminOutletBrands";
+import AdminVendors from "./pages/AdminVendors";
 import AdminMenus from "./pages/AdminMenus";
+import AdminCatalog from "./pages/AdminCatalog";
+import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminSettings from "./pages/AdminSettings";
 import AdminLayout from "./components/AdminLayout";
 import adminService from "./services/adminService";
 
@@ -18,14 +19,9 @@ const AdminApp: React.FC = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Initialize auth token
         adminService.initializeAuth();
-
-        // Check if user is authenticated
         const isAuth = adminService.isAuthenticated();
-
         if (isAuth) {
-          // Validate token with server
           const isValidToken = await adminService.validateToken();
           setIsAuthenticated(isValidToken);
         } else {
@@ -38,14 +34,10 @@ const AdminApp: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     checkAuth();
   }, []);
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-  };
-
+  const handleLogin = () => setIsAuthenticated(true);
   const handleLogout = () => {
     adminService.logout();
     setIsAuthenticated(false);
@@ -55,7 +47,7 @@ const AdminApp: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
           <p className="mt-2 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -69,17 +61,15 @@ const AdminApp: React.FC = () => {
   return (
     <Routes>
       <Route element={<AdminLayout onLogout={handleLogout} />}>
-        <Route
-          path="/admin"
-          element={<Navigate to="/admin/dashboard" replace />}
-        />
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/outlets" element={<AdminOutlets />} />
-        <Route path="/admin/brands" element={<AdminBrands />} />
-        <Route path="/admin/menus" element={<AdminMenus />} />
-        <Route path="/admin/outlet-brands" element={<AdminOutletBrands />} />
+        <Route path="/admin/analytics" element={<AdminAnalytics />} />
         <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/catalog" element={<AdminCatalog />} />
+        <Route path="/admin/menus" element={<AdminMenus />} />
+        <Route path="/admin/vendors" element={<AdminVendors />} />
         <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Route>
     </Routes>

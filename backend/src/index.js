@@ -30,7 +30,6 @@ require("./models/associations");
 
 // Import routes
 const authRoutes = require("./routes/auth");
-// const restaurantRoutes = require("./routes/restaurants");
 const menuRoutes = require("./routes/menu");
 const orderRoutes = require("./routes/orders");
 const paymentRoutes = require("./routes/payments");
@@ -42,6 +41,8 @@ const addressRoutes = require("./routes/addresses");
 const outletRoutes = require("./routes/outlets");
 // Admin routes
 const adminRoutes = require("./admin/adminRoutes");
+// Vendor routes
+const vendorRoutes = require("./vendor/vendorRoutes");
 
 // Test routes (development only)
 const testRoutes =
@@ -163,7 +164,6 @@ app.get("/health", (req, res) => {
 
 // API routes
 app.use("/api/auth", authLimiter, authRoutes);
-// app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
@@ -181,6 +181,11 @@ if (testRoutes) {
 // Admin routes (Protected)
 app.use("/api/admin/login", authLimiter);
 app.use("/api/admin", adminRoutes);
+
+// Vendor routes (Protected)
+app.use("/api/vendor/login", authLimiter);
+app.use("/api/vendor/register", authLimiter);
+app.use("/api/vendor", vendorRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {

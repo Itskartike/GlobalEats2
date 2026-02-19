@@ -9,6 +9,14 @@ const Brand = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    owner_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: "users",
+        key: "id",
+      },
+    },
     name: {
       type: DataTypes.STRING(200),
       allowNull: false,

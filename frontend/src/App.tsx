@@ -9,7 +9,8 @@ import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./contexts/AuthProvider";
 import { LocationProvider } from "./contexts/LocationContext";
 import Header from "./components/layout/Header";
-import { Footer } from "./components/layout/Footer";
+import Footer from "./components/layout/Footer";
+import { BottomNav } from "./components/layout/BottomNav";
 import { Home } from "./pages/Home";
 import { BrandListing } from "./pages/BrandListing";
 import { Profile } from "./pages/ProfileNew";
@@ -18,9 +19,11 @@ import { Checkout } from "./pages/Checkout";
 import { OrderConfirmation } from "./pages/OrderConfirmation";
 import { ResetPassword } from "./pages/ResetPassword";
 import { VerifyEmail } from "./pages/VerifyEmail";
+import PartnerWithUs from "./pages/PartnerWithUs";
 import { BrandDetail } from "./components/features/restaurants/BrandDetail";
 import { BrandMenu } from "./components/features/restaurants/BrandMenu";
 import AdminApp from "./admin/AdminApp";
+import VendorApp from "./vendor/VendorApp";
 import { LocationModal } from "./components/location/LocationModal";
 
 const queryClient = new QueryClient({
@@ -35,9 +38,14 @@ const queryClient = new QueryClient({
 function AppRouter() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
+  const isVendor = location.pathname.startsWith("/vendor");
 
   if (isAdmin) {
     return <AdminApp />;
+  }
+
+  if (isVendor) {
+    return <VendorApp />;
   }
 
   return (
@@ -55,9 +63,11 @@ function AppRouter() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/brands/:brandSlug" element={<BrandMenu />} />
           <Route path="/brands/:brandSlug/details" element={<BrandDetail />} />
+          <Route path="/partner" element={<PartnerWithUs />} />
         </Routes>
       </main>
       <Footer />
+      <BottomNav />
       <Toaster
         position="top-right"
         toastOptions={{

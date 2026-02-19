@@ -13,6 +13,7 @@ const {
   MenuItem,
   OrderItem,
   Address,
+  VendorProfile,
 } = require("../models/associations");
 const { sequelize } = require("../database/config/database");
 const { QueryTypes } = require("sequelize");
@@ -96,64 +97,106 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// Dashboard Metrics (Protected Route)
+// Dashboard Metrics — Platform Command Center (Protected Route)
 router.get("/dashboard", adminAuth, async (req, res) => {
   try {
-    // Get dashboard statistics
-    const [totalUsers, totalOrders, totalBrands, totalOutlets, todayOrders] =
-      await Promise.all([
-        User.count({ where: { role: "customer" } }),
-        Order.count(),
-        Brand.count(),
-        Outlet.count(),
-        Order.count({
-          where: {
-            created_at: {
-              [Op.gte]: new Date(new Date().setHours(0, 0, 0, 0)),
-            },
-          },
-        }),
-      ]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date(today); monthAgo.setMonth(monthAgo.getMonth() - 1);
 
-    // Get recent orders
+    // Core stats + Vendor health + Revenue + Live ops — all parallel
+    const [
+      totalUsers, totalOrders, totalBrands, totalOutlets, todayOrders,
+      totalVendors, pendingVendors, approvedVendors, suspendedVendors,
+      totalGMV, todayGMV,
+      pendingOrders, confirmedOrders, preparingOrders, readyOrders, outForDeliveryOrders,
+      newVendorsWeek, newVendorsMonth, newCustomersWeek, newCustomersMonth,
+      ordersWeek, ordersMonth,
+      cancelledToday,
+    ] = await Promise.all([
+      User.count({ where: { role: "customer" } }),
+      Order.count(),
+      Brand.count(),
+      Outlet.count(),
+      Order.count({ where: { created_at: { [Op.gte]: today } } }),
+      // Vendor health
+      VendorProfile.count(),
+      VendorProfile.count({ where: { status: "pending" } }),
+      VendorProfile.count({ where: { status: "approved" } }),
+      VendorProfile.count({ where: { status: "suspended" } }),
+      // Revenue
+      Order.sum("total_amount", { where: { status: "delivered" } }),
+      Order.sum("total_amount", { where: { status: "delivered", created_at: { [Op.gte]: today } } }),
+      // Live order pipeline
+      Order.count({ where: { status: "pending" } }),
+      Order.count({ where: { status: "confirmed" } }),
+      Order.count({ where: { status: "preparing" } }),
+      Order.count({ where: { status: "ready" } }),
+      Order.count({ where: { status: "out_for_delivery" } }),
+      // Growth metrics
+      VendorProfile.count({ where: { created_at: { [Op.gte]: weekAgo } } }),
+      VendorProfile.count({ where: { created_at: { [Op.gte]: monthAgo } } }),
+      User.count({ where: { role: "customer", created_at: { [Op.gte]: weekAgo } } }),
+      User.count({ where: { role: "customer", created_at: { [Op.gte]: monthAgo } } }),
+      Order.count({ where: { created_at: { [Op.gte]: weekAgo } } }),
+      Order.count({ where: { created_at: { [Op.gte]: monthAgo } } }),
+      // Cancellations today
+      Order.count({ where: { status: "cancelled", created_at: { [Op.gte]: today } } }),
+    ]);
+
+    // Estimate platform commission
+    const avgCommission = await VendorProfile.findOne({
+      attributes: [[sequelize.fn("AVG", sequelize.col("commission_rate")), "avg_rate"]],
+      where: { status: "approved" },
+      raw: true,
+    });
+    const avgRate = parseFloat(avgCommission?.avg_rate || "15");
+    const totalCommission = Math.round(((totalGMV || 0) * avgRate / 100) * 100) / 100;
+    const todayCommission = Math.round(((todayGMV || 0) * avgRate / 100) * 100) / 100;
+
+    // Recent orders with outlet+vendor info
     const recentOrders = await Order.findAll({
       limit: 10,
       order: [["created_at", "DESC"]],
-      attributes: [
-        "id",
-        "order_number",
-        "status",
-        "total_amount",
-        "created_at",
-      ],
+      attributes: ["id", "order_number", "status", "total_amount", "created_at"],
       include: [
+        { model: User, as: "user", attributes: ["name", "email"] },
         {
-          model: User,
-          as: "user",
-          attributes: ["name", "email"],
+          model: Outlet, as: "outlet",
+          attributes: ["id", "name", "owner_id"],
+          include: [{ model: User, as: "owner", attributes: ["name"] }],
         },
       ],
     });
 
+    // Alerts
+    const alerts = [];
+    if (pendingVendors > 0) alerts.push({ type: "warning", message: `${pendingVendors} vendor(s) awaiting approval` });
+    if (cancelledToday > 3) alerts.push({ type: "danger", message: `${cancelledToday} orders cancelled today` });
+    const stuckOrders = await Order.count({
+      where: { status: "pending", created_at: { [Op.lt]: new Date(Date.now() - 15 * 60 * 1000) } },
+    });
+    if (stuckOrders > 0) alerts.push({ type: "danger", message: `${stuckOrders} order(s) stuck as pending >15min` });
+
     res.json({
       success: true,
       data: {
-        stats: {
-          totalUsers,
-          totalOrders,
-          totalBrands,
-          totalOutlets,
-          todayOrders,
+        stats: { totalUsers, totalOrders, totalBrands, totalOutlets, todayOrders },
+        vendorHealth: { totalVendors, pendingVendors, approvedVendors, suspendedVendors },
+        revenue: {
+          totalGMV: totalGMV || 0, todayGMV: todayGMV || 0,
+          totalCommission, todayCommission, avgCommissionRate: avgRate,
         },
+        liveOps: { pendingOrders, confirmedOrders, preparingOrders, readyOrders, outForDeliveryOrders },
+        growth: { newVendorsWeek, newVendorsMonth, newCustomersWeek, newCustomersMonth, ordersWeek, ordersMonth },
+        alerts,
         recentOrders,
       },
     });
   } catch (error) {
     console.error("Dashboard error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch dashboard data",
-    });
+    res.status(500).json({ success: false, message: "Failed to fetch dashboard data" });
   }
 });
 
@@ -1854,6 +1897,573 @@ router.put("/orders/:id", adminAuth, async (req, res) => {
       message: "Failed to update order",
       ...(process.env.NODE_ENV !== "production" && { error: error?.message }),
     });
+  }
+});
+
+// ==================== VENDOR MANAGEMENT ====================
+
+// List all vendors with status filter
+router.get("/vendors", adminAuth, async (req, res) => {
+  try {
+    const { status, search, page = 1, limit = 20 } = req.query;
+    const where = {};
+
+    if (status) where.status = status;
+    if (search) {
+      where[Op.or] = [
+        { business_name: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const { count, rows } = await VendorProfile.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset,
+      order: [["created_at", "DESC"]],
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "name", "email", "phone", "is_active", "created_at"],
+        },
+      ],
+    });
+
+    res.json({
+      success: true,
+      data: {
+        vendors: rows,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(count / parseInt(limit)),
+          totalItems: count,
+          itemsPerPage: parseInt(limit),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Admin vendors list error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch vendors",
+    });
+  }
+});
+
+// Get vendor detail
+router.get("/vendors/:id", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const vendor = await VendorProfile.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "name", "email", "phone", "is_active", "created_at"],
+        },
+      ],
+    });
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    // Get vendor's brands and outlets
+    const brands = await Brand.findAll({
+      where: { owner_id: vendor.user_id },
+      attributes: ["id", "name", "slug", "is_active", "average_rating", "created_at"],
+    });
+
+    const outlets = await Outlet.findAll({
+      where: { owner_id: vendor.user_id },
+      attributes: ["id", "name", "city", "state", "is_active", "created_at"],
+    });
+
+    // Get vendor's order stats
+    const outletIds = outlets.map((o) => o.id);
+    const orderStats = outletIds.length > 0
+      ? {
+          totalOrders: await Order.count({
+            where: { outlet_id: { [Op.in]: outletIds } },
+          }),
+          totalRevenue:
+            (await Order.sum("total_amount", {
+              where: {
+                outlet_id: { [Op.in]: outletIds },
+                status: "delivered",
+              },
+            })) || 0,
+        }
+      : { totalOrders: 0, totalRevenue: 0 };
+
+    res.json({
+      success: true,
+      data: {
+        vendor,
+        brands,
+        outlets,
+        stats: orderStats,
+      },
+    });
+  } catch (error) {
+    console.error("Admin vendor detail error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch vendor details",
+    });
+  }
+});
+
+// Approve vendor
+router.put("/vendors/:id/approve", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const vendor = await VendorProfile.findByPk(id);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    await vendor.update({
+      status: "approved",
+      status_reason: null,
+      approved_at: new Date(),
+      approved_by: req.user.id,
+    });
+
+    res.json({
+      success: true,
+      message: "Vendor approved successfully",
+      data: vendor,
+    });
+  } catch (error) {
+    console.error("Admin vendor approve error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to approve vendor",
+    });
+  }
+});
+
+// Suspend vendor
+router.put("/vendors/:id/suspend", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const vendor = await VendorProfile.findByPk(id);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    await vendor.update({
+      status: "suspended",
+      status_reason: reason || "Suspended by admin",
+    });
+
+    res.json({
+      success: true,
+      message: "Vendor suspended successfully",
+      data: vendor,
+    });
+  } catch (error) {
+    console.error("Admin vendor suspend error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to suspend vendor",
+    });
+  }
+});
+
+// Reject vendor
+router.put("/vendors/:id/reject", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const vendor = await VendorProfile.findByPk(id);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    await vendor.update({
+      status: "rejected",
+      status_reason: reason || "Application rejected",
+    });
+
+    res.json({
+      success: true,
+      message: "Vendor rejected",
+      data: vendor,
+    });
+  } catch (error) {
+    console.error("Admin vendor reject error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to reject vendor",
+    });
+  }
+});
+
+// Update vendor commission rate
+router.put("/vendors/:id/commission", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { commission_rate } = req.body;
+
+    if (commission_rate === undefined || commission_rate < 0 || commission_rate > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Commission rate must be between 0 and 100",
+      });
+    }
+
+    const vendor = await VendorProfile.findByPk(id);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found",
+      });
+    }
+
+    await vendor.update({ commission_rate: parseFloat(commission_rate) });
+
+    res.json({
+      success: true,
+      message: "Commission rate updated",
+      data: vendor,
+    });
+  } catch (error) {
+    console.error("Admin vendor commission error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update commission rate",
+    });
+  }
+});
+
+// Platform analytics
+router.get("/platform-analytics", adminAuth, async (req, res) => {
+  try {
+    const [
+      totalVendors,
+      pendingVendors,
+      approvedVendors,
+      totalGMV,
+    ] = await Promise.all([
+      VendorProfile.count(),
+      VendorProfile.count({ where: { status: "pending" } }),
+      VendorProfile.count({ where: { status: "approved" } }),
+      Order.sum("total_amount", { where: { status: "delivered" } }),
+    ]);
+
+    // Estimate commission earned (average commission * delivered order total)
+    const avgCommission = await VendorProfile.findOne({
+      attributes: [
+        [sequelize.fn("AVG", sequelize.col("commission_rate")), "avg_commission"],
+      ],
+      where: { status: "approved" },
+      raw: true,
+    });
+
+    const commissionEarned =
+      ((totalGMV || 0) * ((avgCommission?.avg_commission || 15) / 100));
+
+    res.json({
+      success: true,
+      data: {
+        totalVendors,
+        pendingVendors,
+        approvedVendors,
+        suspendedVendors: await VendorProfile.count({ where: { status: "suspended" } }),
+        totalGMV: totalGMV || 0,
+        commissionEarned: Math.round(commissionEarned * 100) / 100,
+      },
+    });
+  } catch (error) {
+    console.error("Platform analytics error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch platform analytics",
+    });
+  }
+});
+
+// ==================== PLATFORM CATALOG ====================
+
+// Get all brands across all vendors (read-only overview for admin)
+router.get("/catalog/brands", adminAuth, async (req, res) => {
+  try {
+    const { search, vendor_id, status } = req.query;
+    const where = {};
+    if (vendor_id) where.owner_id = vendor_id;
+    if (status === "active") where.is_active = true;
+    else if (status === "inactive") where.is_active = false;
+    if (search) where.name = { [Op.iLike]: `%${search}%` };
+
+    const brands = await Brand.findAll({
+      where,
+      order: [["created_at", "DESC"]],
+      include: [
+        { model: User, as: "owner", attributes: ["id", "name", "email"] },
+        { model: Category, as: "categories", attributes: ["id", "name"], through: { attributes: [] } },
+      ],
+    });
+
+    res.json({ success: true, data: brands });
+  } catch (error) {
+    console.error("Admin catalog brands error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch catalog brands" });
+  }
+});
+
+// Get all outlets across all vendors
+router.get("/catalog/outlets", adminAuth, async (req, res) => {
+  try {
+    const { search, vendor_id, city } = req.query;
+    const where = {};
+    if (vendor_id) where.owner_id = vendor_id;
+    if (city) where.city = { [Op.iLike]: `%${city}%` };
+    if (search) where.name = { [Op.iLike]: `%${search}%` };
+
+    const outlets = await Outlet.findAll({
+      where,
+      order: [["created_at", "DESC"]],
+      include: [
+        { model: User, as: "owner", attributes: ["id", "name", "email"] },
+        { model: Brand, as: "Brands", attributes: ["id", "name", "slug"], through: { attributes: [] } },
+      ],
+    });
+
+    res.json({ success: true, data: outlets });
+  } catch (error) {
+    console.error("Admin catalog outlets error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch catalog outlets" });
+  }
+});
+
+// Get all menu items across all vendors
+router.get("/catalog/menu-items", adminAuth, async (req, res) => {
+  try {
+    const { search, brand_id } = req.query;
+    const where = {};
+    if (brand_id) where.brand_id = brand_id;
+    if (search) where.name = { [Op.iLike]: `%${search}%` };
+
+    const items = await MenuItem.findAll({
+      where,
+      limit: 100,
+      order: [["created_at", "DESC"]],
+      include: [
+        {
+          model: Brand, as: "parentBrand",
+          attributes: ["id", "name", "owner_id"],
+          include: [{ model: User, as: "owner", attributes: ["id", "name"] }],
+        },
+        { model: Category, as: "categoryInfo", attributes: ["id", "name"] },
+      ],
+    });
+
+    res.json({ success: true, data: items });
+  } catch (error) {
+    console.error("Admin catalog menu items error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch catalog menu items" });
+  }
+});
+
+// Admin override: toggle brand active/inactive
+router.put("/catalog/brands/:id/toggle", adminAuth, async (req, res) => {
+  try {
+    const brand = await Brand.findByPk(req.params.id);
+    if (!brand) return res.status(404).json({ success: false, message: "Brand not found" });
+
+    await brand.update({ is_active: !brand.is_active });
+    res.json({ success: true, message: `Brand ${brand.is_active ? "activated" : "deactivated"}`, data: brand });
+  } catch (error) {
+    console.error("Admin toggle brand error:", error);
+    res.status(500).json({ success: false, message: "Failed to toggle brand" });
+  }
+});
+
+// Admin override: toggle outlet active/inactive
+router.put("/catalog/outlets/:id/toggle", adminAuth, async (req, res) => {
+  try {
+    const outlet = await Outlet.findByPk(req.params.id);
+    if (!outlet) return res.status(404).json({ success: false, message: "Outlet not found" });
+
+    await outlet.update({ is_active: !outlet.is_active });
+    res.json({ success: true, message: `Outlet ${outlet.is_active ? "activated" : "deactivated"}`, data: outlet });
+  } catch (error) {
+    console.error("Admin toggle outlet error:", error);
+    res.status(500).json({ success: false, message: "Failed to toggle outlet" });
+  }
+});
+
+// ==================== ANALYTICS ====================
+
+// Revenue analytics — breakdown by vendor
+router.get("/analytics/revenue", adminAuth, async (req, res) => {
+  try {
+    const { period = "month" } = req.query;
+    const since = new Date();
+    if (period === "today") since.setHours(0, 0, 0, 0);
+    else if (period === "week") since.setDate(since.getDate() - 7);
+    else if (period === "month") since.setMonth(since.getMonth() - 1);
+    else since.setFullYear(since.getFullYear() - 1);
+
+    // Revenue by vendor (via outlet owner_id)
+    const vendorRevenue = await sequelize.query(`
+      SELECT u.id as vendor_id, u.name as vendor_name, vp.business_name,
+             COUNT(o.id) as order_count,
+             COALESCE(SUM(o.total_amount), 0) as revenue,
+             COALESCE(vp.commission_rate, 15) as commission_rate,
+             COALESCE(SUM(o.total_amount) * vp.commission_rate / 100, 0) as commission
+      FROM orders o
+      JOIN outlets ot ON o.outlet_id = ot.id
+      JOIN users u ON ot.owner_id = u.id
+      LEFT JOIN vendor_profiles vp ON vp.user_id = u.id
+      WHERE o.status = 'delivered' AND o.created_at >= :since
+      GROUP BY u.id, u.name, vp.business_name, vp.commission_rate
+      ORDER BY revenue DESC
+    `, { replacements: { since }, type: QueryTypes.SELECT });
+
+    // Revenue by city
+    const cityRevenue = await sequelize.query(`
+      SELECT ot.city, COUNT(o.id) as order_count,
+             COALESCE(SUM(o.total_amount), 0) as revenue
+      FROM orders o
+      JOIN outlets ot ON o.outlet_id = ot.id
+      WHERE o.status = 'delivered' AND o.created_at >= :since AND ot.city IS NOT NULL
+      GROUP BY ot.city ORDER BY revenue DESC LIMIT 10
+    `, { replacements: { since }, type: QueryTypes.SELECT });
+
+    const totalRevenue = vendorRevenue.reduce((sum, v) => sum + parseFloat(v.revenue || 0), 0);
+    const totalCommission = vendorRevenue.reduce((sum, v) => sum + parseFloat(v.commission || 0), 0);
+
+    res.json({
+      success: true,
+      data: { period, totalRevenue, totalCommission, vendorRevenue, cityRevenue },
+    });
+  } catch (error) {
+    console.error("Admin analytics revenue error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch revenue analytics" });
+  }
+});
+
+// Order analytics — trends and breakdown
+router.get("/analytics/orders", adminAuth, async (req, res) => {
+  try {
+    const { period = "week" } = req.query;
+    const since = new Date();
+    if (period === "today") since.setHours(0, 0, 0, 0);
+    else if (period === "week") since.setDate(since.getDate() - 7);
+    else if (period === "month") since.setMonth(since.getMonth() - 1);
+    else since.setFullYear(since.getFullYear() - 1);
+
+    const statusBreakdown = await Order.findAll({
+      where: { created_at: { [Op.gte]: since } },
+      attributes: ["status", [sequelize.fn("COUNT", sequelize.col("id")), "count"]],
+      group: ["status"],
+      raw: true,
+    });
+
+    // Daily order volume
+    const dailyVolume = await sequelize.query(`
+      SELECT DATE(created_at) as date, COUNT(*) as orders,
+             COALESCE(SUM(total_amount), 0) as revenue
+      FROM orders WHERE created_at >= :since
+      GROUP BY DATE(created_at) ORDER BY date
+    `, { replacements: { since }, type: QueryTypes.SELECT });
+
+    // Peak hours (by hour of day)
+    const peakHours = await sequelize.query(`
+      SELECT EXTRACT(HOUR FROM created_at) as hour, COUNT(*) as orders
+      FROM orders WHERE created_at >= :since
+      GROUP BY hour ORDER BY orders DESC LIMIT 5
+    `, { replacements: { since }, type: QueryTypes.SELECT });
+
+    const totalOrders = statusBreakdown.reduce((sum, s) => sum + parseInt(s.count), 0);
+    const avgOrderValue = totalOrders > 0
+      ? (await Order.sum("total_amount", { where: { created_at: { [Op.gte]: since } } })) / totalOrders
+      : 0;
+
+    res.json({
+      success: true,
+      data: { period, statusBreakdown, dailyVolume, peakHours, totalOrders, avgOrderValue: Math.round(avgOrderValue * 100) / 100 },
+    });
+  } catch (error) {
+    console.error("Admin analytics orders error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch order analytics" });
+  }
+});
+
+// Top performers — best vendors, brands, items
+router.get("/analytics/top-performers", adminAuth, async (req, res) => {
+  try {
+    // Top vendors by revenue
+    const topVendors = await sequelize.query(`
+      SELECT u.id, u.name, vp.business_name,
+             COUNT(o.id) as order_count,
+             COALESCE(SUM(o.total_amount), 0) as revenue
+      FROM orders o
+      JOIN outlets ot ON o.outlet_id = ot.id
+      JOIN users u ON ot.owner_id = u.id
+      LEFT JOIN vendor_profiles vp ON vp.user_id = u.id
+      WHERE o.status = 'delivered'
+      GROUP BY u.id, u.name, vp.business_name
+      ORDER BY revenue DESC LIMIT 10
+    `, { type: QueryTypes.SELECT });
+
+    // Top brands by order count
+    const topBrands = await sequelize.query(`
+      SELECT b.id, b.name, b.cuisine_type, b.average_rating,
+             COUNT(DISTINCT oi.order_id) as order_count,
+             COALESCE(SUM(oi.total_price), 0) as revenue
+      FROM order_items oi
+      JOIN menu_items mi ON oi.menu_item_id = mi.id
+      JOIN brands b ON mi.brand_id = b.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.status = 'delivered'
+      GROUP BY b.id, b.name, b.cuisine_type, b.average_rating
+      ORDER BY order_count DESC LIMIT 10
+    `, { type: QueryTypes.SELECT });
+
+    // Top selling items
+    const topItems = await sequelize.query(`
+      SELECT mi.id, mi.name, mi.base_price, b.name as brand_name,
+             SUM(oi.quantity) as total_sold,
+             COALESCE(SUM(oi.total_price), 0) as revenue
+      FROM order_items oi
+      JOIN menu_items mi ON oi.menu_item_id = mi.id
+      JOIN brands b ON mi.brand_id = b.id
+      JOIN orders o ON oi.order_id = o.id
+      WHERE o.status = 'delivered'
+      GROUP BY mi.id, mi.name, mi.base_price, b.name
+      ORDER BY total_sold DESC LIMIT 10
+    `, { type: QueryTypes.SELECT });
+
+    res.json({
+      success: true,
+      data: { topVendors, topBrands, topItems },
+    });
+  } catch (error) {
+    console.error("Admin analytics top performers error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch top performers" });
   }
 });
 

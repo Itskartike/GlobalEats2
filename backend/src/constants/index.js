@@ -3,10 +3,28 @@ module.exports = {
   // User Roles
   USER_ROLES: {
     CUSTOMER: "customer",
-    RESTAURANT_OWNER: "restaurant_owner",
+    VENDOR: "vendor",
     DELIVERY_AGENT: "delivery_agent",
     ADMIN: "admin",
   },
+
+  // Vendor Status
+  VENDOR_STATUS: {
+    PENDING: "pending",
+    APPROVED: "approved",
+    SUSPENDED: "suspended",
+    REJECTED: "rejected",
+  },
+
+  // Business Types
+  BUSINESS_TYPES: {
+    RESTAURANT: "restaurant",
+    CLOUD_KITCHEN: "cloud_kitchen",
+    CAFE: "cafe",
+    BAKERY: "bakery",
+    OTHER: "other",
+  },
+
 
   // Order Status
   ORDER_STATUS: {

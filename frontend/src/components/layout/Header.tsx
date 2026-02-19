@@ -1,20 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  Search,
-  ShoppingBag,
-  User,
-  Menu,
-  MapPin,
-  ChevronDown,
-  Loader2,
-  X,
-} from "lucide-react";
+import { Search, MapPin, ChevronDown, Loader2, Handshake, ShoppingBag, User } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
-import { useLocation } from "../../hooks/useLocation";
+import { useLocation as useAppLocation } from "../../hooks/useLocation";
 import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
 import { AuthModal } from "../auth/AuthModal";
 import { Outlet } from "../../types/index";
 
@@ -27,13 +17,21 @@ const Header: React.FC = () => {
     isLoading: isLocationLoading,
     isLocationPermissionGranted,
     openModal: openLocationModal,
-  } = useLocation();
+  } = useAppLocation();
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showOutletDropdown, setShowOutletDropdown] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const itemCount = getItemCount();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleLocationClick = () => {
     if (isLocationPermissionGranted && nearbyOutlets.length > 0) {
@@ -46,105 +44,93 @@ const Header: React.FC = () => {
   const handleOutletSelect = (outlet: Outlet) => {
     console.log("Selected outlet:", outlet);
     setShowOutletDropdown(false);
-    // Here you can navigate to the outlet or update the selected outlet
   };
 
   return (
     <>
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      <header
+        className={`sticky top-0 z-40 transition-all duration-300 ${
+          isScrolled ? "glass border-b border-gray-200/50" : "bg-transparent border-transparent"
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center">
-              <span className="text-2xl font-bold text-orange-600">
-                Global
-                <span className="text-gray-900">Eats</span>
+            <Link to="/" className="flex items-center gap-2 group btn-press">
+              <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/40 transition-shadow">
+                <span className="text-white font-black text-sm">G</span>
+              </div>
+              <span className="text-xl font-bold tracking-tight text-gray-900">
+                Global<span className="text-orange-600">Eats</span>
               </span>
             </Link>
 
-            {/* Location - Hidden on mobile */}
-            <div className="hidden md:flex items-center relative">
-              <button
-                onClick={handleLocationClick}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 cursor-pointer px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                disabled={isLocationLoading}
-              >
-                {isLocationLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <MapPin className="w-4 h-4 text-red-500" />
-                )}
-                <div className="flex flex-col text-left">
-                  <span className="text-sm font-medium">
-                    {selectedOutlet
-                      ? selectedOutlet.name
-                      : isLocationPermissionGranted && nearbyOutlets.length > 0
+            {/* Desktop: Location & Search */}
+            <div className="hidden md:flex items-center flex-1 ml-8 gap-6">
+              {/* Location Picker */}
+              <div className="relative">
+                <button
+                  onClick={handleLocationClick}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer px-3 py-2 rounded-xl hover:bg-black/5 transition-all btn-press"
+                  disabled={isLocationLoading}
+                >
+                  {isLocationLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MapPin className="w-4 h-4 text-orange-500" />
+                  )}
+                  <div className="flex flex-col text-left">
+                    <span className="text-sm font-semibold">
+                      {selectedOutlet
+                        ? selectedOutlet.name
+                        : isLocationPermissionGranted && nearbyOutlets.length > 0
                         ? nearbyOutlets[0]?.name || "Select Outlet"
                         : "Set Location"}
-                  </span>
-                </div>
-                <ChevronDown className="w-3 h-3 ml-1" />
-              </button>
-
-              {/* Outlet Dropdown */}
-              {showOutletDropdown && nearbyOutlets.length > 0 && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                  <div className="p-3 border-b border-gray-100">
-                    <h3 className="font-medium text-gray-900">
-                      Available Outlets
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Choose your preferred delivery location
-                    </p>
+                    </span>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {nearbyOutlets.map((outlet: Outlet) => (
-                      <div
-                        key={outlet.id}
-                        className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
-                        onClick={() => handleOutletSelect(outlet)}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 text-sm">
-                              {outlet.name}
-                            </h4>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {outlet.address}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {outlet.city}
-                              {outlet.city && outlet.state ? ", " : ""}
-                              {outlet.state}
-                            </p>
-                          </div>
-                          <div className="text-right ml-2">
-                            <div className="text-xs text-orange-600 font-medium">
-                              Delivery Available
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </button>
+
+                {/* Outlet Dropdown */}
+                {showOutletDropdown && nearbyOutlets.length > 0 && (
+                  <div className="absolute top-full left-0 mt-2 w-80 glass rounded-2xl overflow-hidden animate-scale-in origin-top-left">
+                    <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-orange-50/50 to-rose-50/50">
+                      <h3 className="font-semibold text-gray-900">Available Outlets</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">Select for delivery</p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                      {nearbyOutlets.map((outlet: Outlet) => (
+                        <div
+                          key={outlet.id}
+                          className="p-3 hover:bg-orange-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors"
+                          onClick={() => handleOutletSelect(outlet)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 text-sm">{outlet.name}</h4>
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-1">{outlet.address}</p>
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              25-30 mins
+                            <div className="text-right ml-2">
+                              <div className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-full">OPEN</div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Search Bar - Hidden on mobile */}
-            <div className="hidden md:flex flex-1 max-w-md mx-8">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              {/* Search Bar */}
+              <div className="flex-1 max-w-md relative group">
+                <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
                 <input
                   type="text"
-                  placeholder="Search for restaurants, cuisines..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                  placeholder="Search restaurants, cuisines..."
+                  className="input-field py-2.5 pl-10 text-sm bg-gray-100/50 border-transparent focus:bg-white"
                   onKeyPress={(e) => {
                     if (e.key === "Enter") {
-                      const query = (e.target as HTMLInputElement).value;
+                      const query = (e.currentTarget as HTMLInputElement).value;
                       if (query.trim()) {
                         window.location.href = `/restaurants?search=${encodeURIComponent(query)}`;
                       }
@@ -154,152 +140,63 @@ const Header: React.FC = () => {
               </div>
             </div>
 
-            {/* Right side - Cart, User */}
-            <div className="flex items-center space-x-4">
-              {/* Cart */}
-              <Link to="/cart" className="relative">
-                <ShoppingBag className="w-6 h-6 text-gray-600 hover:text-gray-900" />
+            {/* Actions */}
+            <div className="flex items-center gap-3">
+              {/* Desktop Partner Link */}
+              <Link to="/partner" className="hidden lg:flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors mr-2 px-3 py-2 rounded-lg hover:bg-emerald-50">
+                <Handshake className="w-4 h-4" />
+                <span>Partner</span>
+              </Link>
+
+              {/* Cart Button */}
+              <Link to="/cart" className="relative p-2.5 rounded-xl hover:bg-black/5 transition-colors btn-press group">
+                <ShoppingBag className="w-5 h-5 text-gray-700 group-hover:text-orange-600 transition-colors" />
                 {itemCount > 0 && (
-                  <Badge className="absolute -top-2 -right-2 bg-orange-500 text-white">
+                  <span className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm animate-scale-in">
                     {itemCount}
-                  </Badge>
+                  </span>
                 )}
               </Link>
 
-              {/* User Account */}
+              {/* User Profile / Login */}
               {isAuthenticated ? (
-                <div className="flex items-center space-x-2">
-                  <Link to="/profile">
-                    <User className="w-6 h-6 text-gray-600 hover:text-gray-900" />
-                  </Link>
-                  <span className="hidden sm:inline text-sm font-medium text-gray-700">
-                    {user?.name}
-                  </span>
-                </div>
+                <Link to="/profile" className="hidden md:flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-gray-200 hover:border-orange-200 hover:bg-orange-50 transition-all btn-press">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-rose-400 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                    {user?.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700">{user?.name?.split(" ")[0]}</span>
+                </Link>
               ) : (
                 <Button
                   variant="primary"
+                  size="sm"
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="hidden sm:inline-flex"
+                  className="hidden md:flex bg-gradient-to-r from-orange-600 to-rose-600 hover:shadow-lg hover:shadow-orange-500/30 border-0 rounded-xl px-6"
                 >
                   Sign In
                 </Button>
               )}
 
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden"
+              {/* Mobile: Simple User Icon (if logged in) or Login Icon */}
+              <button 
+                 onClick={() => !isAuthenticated && setIsAuthModalOpen(true)}
+                 className="md:hidden p-2.5 rounded-xl hover:bg-black/5 transition-colors btn-press"
               >
-                {isMobileMenuOpen ? (
-                  <X className="w-6 h-6 text-gray-600" />
-                ) : (
-                  <Menu className="w-6 h-6 text-gray-600" />
-                )}
+                  {isAuthenticated ? (
+                      <Link to="/profile">
+                         <div className="w-6 h-6 bg-gradient-to-br from-orange-400 to-rose-400 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                            {user?.name?.charAt(0)?.toUpperCase()}
+                         </div>
+                      </Link>
+                  ) : (
+                      <User className="w-5 h-5 text-gray-700" />
+                  )}
               </button>
             </div>
           </div>
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 py-4">
-              {/* Mobile Location */}
-              <div className="mb-4">
-                <button
-                  onClick={handleLocationClick}
-                  className="flex items-center w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
-                  disabled={isLocationLoading}
-                >
-                  {isLocationLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-3" />
-                  ) : (
-                    <MapPin className="w-4 h-4 mr-3 text-red-500" />
-                  )}
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">
-                      {selectedOutlet
-                        ? selectedOutlet.name
-                        : isLocationPermissionGranted &&
-                            nearbyOutlets.length > 0
-                          ? nearbyOutlets[0]?.name || "Select Outlet"
-                          : "Set Location"}
-                    </span>
-                  </div>
-                </button>
-              </div>
-
-              {/* Mobile Search */}
-              <div className="mb-4 px-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Search restaurants..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        const query = (e.target as HTMLInputElement).value;
-                        if (query.trim()) {
-                          setIsMobileMenuOpen(false);
-                          window.location.href = `/restaurants?search=${encodeURIComponent(query)}`;
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Mobile Auth */}
-              {!isAuthenticated && (
-                <div className="px-4">
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      setIsAuthModalOpen(true);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full"
-                  >
-                    Sign In
-                  </Button>
-                </div>
-              )}
-
-              {/* Mobile Outlets */}
-              {isLocationPermissionGranted && nearbyOutlets.length > 0 && (
-                <div className="mt-4 border-t border-gray-200 pt-4">
-                  <div className="px-4 mb-2">
-                    <h3 className="font-medium text-gray-900 text-sm">
-                      Available Outlets:
-                    </h3>
-                  </div>
-                  <div className="max-h-48 overflow-y-auto">
-                    {nearbyOutlets.slice(0, 3).map((outlet: Outlet) => (
-                      <button
-                        key={outlet.id}
-                        onClick={() => {
-                          handleOutletSelect(outlet);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                      >
-                        <h4 className="font-medium text-gray-900 text-sm">
-                          {outlet.name}
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-1 truncate">
-                          {outlet.address}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </header>
 
-      {/* Auth Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}

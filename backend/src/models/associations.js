@@ -1,4 +1,4 @@
-// Model associations for Phase 2: Brand-Outlet System
+// Model associations for Phase 2: Brand-Outlet System + Phase 3: Multi-Tenant Vendor
 const Brand = require("./Brand");
 const Outlet = require("./Outlet");
 const OutletBrand = require("./OutletBrand");
@@ -11,6 +11,7 @@ const Order = require("./Order");
 const OrderItem = require("./OrderItem");
 const Address = require("./Address");
 const Payment = require("./Payment");
+const VendorProfile = require("./VendorProfile");
 
 // Brand associations
 // Removed old direct outlet relationship: Brand.hasMany(Outlet, { foreignKey: "brand_id", as: "outlets" });
@@ -29,6 +30,9 @@ Brand.belongsToMany(Outlet, {
   otherKey: "outlet_id",
   as: "Outlets",
 });
+
+// Brand ownership
+Brand.belongsTo(User, { as: "owner", foreignKey: "owner_id" });
 
 // Outlet associations
 // Removed old direct brand relationship: Outlet.belongsTo(Brand, { foreignKey: "brand_id", as: "brand" });
@@ -50,6 +54,9 @@ Outlet.belongsToMany(Brand, {
   otherKey: "brand_id",
   as: "Brands",
 });
+
+// Outlet ownership
+Outlet.belongsTo(User, { as: "owner", foreignKey: "owner_id" });
 
 // OutletBrand associations
 OutletBrand.belongsTo(Outlet, { foreignKey: "outlet_id", as: "Outlet" });
@@ -110,6 +117,14 @@ User.hasMany(Order, { foreignKey: "user_id", as: "orders" });
 User.hasMany(Address, { foreignKey: "user_id", as: "addresses" });
 User.hasMany(Payment, { foreignKey: "user_id", as: "payments" });
 
+// Vendor associations
+User.hasOne(VendorProfile, { foreignKey: "user_id", as: "vendorProfile" });
+VendorProfile.belongsTo(User, { foreignKey: "user_id", as: "user" });
+
+// Brand/Outlet ownership by user (vendor)
+User.hasMany(Brand, { as: "ownedBrands", foreignKey: "owner_id" });
+User.hasMany(Outlet, { as: "ownedOutlets", foreignKey: "owner_id" });
+
 // Address associations
 Address.belongsTo(User, { foreignKey: "user_id", as: "user" });
 
@@ -126,4 +141,6 @@ module.exports = {
   OrderItem,
   Address,
   Payment,
+  VendorProfile,
 };
+

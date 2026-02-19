@@ -39,24 +39,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black bg-opacity-50"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={handleBackdropClick}
       />
 
       {/* Modal Content */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.2 }}
-        className="relative z-10 w-full max-w-md mx-4"
+        initial={{ opacity: 0, y: "100%" }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="relative z-10 w-full max-w-md bg-white rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] md:max-h-auto"
       >
+        {/* Mobile Drag Handle */}
+        <div className="md:hidden w-full flex justify-center pt-3 pb-1">
+          <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+        </div>
         {/* Close Button */}
         <button
           onClick={handleClose}

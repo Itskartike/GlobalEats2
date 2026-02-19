@@ -116,9 +116,6 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Test credentials: admin@globaleats.com / admin123</p>
-        </div>
       </div>
     </div>
   );

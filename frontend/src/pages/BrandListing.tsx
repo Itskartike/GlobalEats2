@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, Filter, Clock, Star, MapPin, SortAsc } from "lucide-react";
-import { motion } from "framer-motion";
-import { Card } from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
-import { Button } from "../components/ui/Button";
-import { Rating } from "../components/ui/Rating";
+import { Search, SlidersHorizontal, Clock, Star, MapPin, X, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Brand } from "../types/brand";
 import brandService from "../services/brandService";
 import { transformApiBrandToBrand } from "../utils/apiTransformers";
+
+const CUISINES = ["All", "Pizza", "Burgers", "Indian", "Chinese", "South Indian", "Desserts", "Coffee & Tea", "Healthy", "Bakery"];
+const SORT_OPTIONS = [
+  { value: "rating", label: "Top Rated" },
+  { value: "name", label: "A-Z" },
+  { value: "delivery_time", label: "Fastest" },
+];
+
+const GRADIENTS = [
+  "from-orange-100 to-rose-100",
+  "from-violet-100 to-purple-100",
+  "from-emerald-100 to-teal-100",
+  "from-amber-100 to-yellow-100",
+  "from-blue-100 to-cyan-100",
+  "from-pink-100 to-rose-100",
+];
 
 export const BrandListing: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -16,7 +28,7 @@ export const BrandListing: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
-  const [selectedCuisine, setSelectedCuisine] = useState(searchParams.get("category") || "");
+  const [selectedCuisine, setSelectedCuisine] = useState(searchParams.get("category") || "All");
   const [sortBy, setSortBy] = useState("rating");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -28,25 +40,16 @@ export const BrandListing: React.FC = () => {
           page: 1,
           limit: 50,
           search: searchTerm || undefined,
-          cuisine_type: selectedCuisine || undefined,
+          cuisine_type: selectedCuisine === "All" ? undefined : selectedCuisine,
         });
         let transformedBrands = response.brands.map(transformApiBrandToBrand);
         
-        // Apply sorting
         switch (sortBy) {
           case "rating":
             transformedBrands.sort((a, b) => b.rating - a.rating);
             break;
           case "name":
             transformedBrands.sort((a, b) => a.name.localeCompare(b.name));
-            break;
-          case "delivery_time":
-            // Sort by estimated delivery time (mock data)
-            transformedBrands.sort((a, b) => {
-              const timeA = Math.floor(Math.random() * 20) + 25; // 25-45 min
-              const timeB = Math.floor(Math.random() * 20) + 25;
-              return timeA - timeB;
-            });
             break;
           default:
             break;
@@ -64,27 +67,29 @@ export const BrandListing: React.FC = () => {
     fetchBrands();
   }, [searchTerm, selectedCuisine, sortBy]);
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading restaurants...</p>
+      <div className="min-h-screen bg-stone-50">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* Skeleton header */}
+          <div className="mb-8 space-y-3">
+            <div className="h-8 shimmer rounded-xl w-60" />
+            <div className="h-5 shimmer rounded-lg w-80" />
+          </div>
+          {/* Skeleton search */}
+          <div className="h-12 shimmer rounded-2xl w-full mb-6" />
+          {/* Skeleton grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden">
+                <div className="aspect-[16/10] shimmer rounded-2xl" />
+                <div className="p-4 space-y-2">
+                  <div className="h-5 shimmer rounded-lg w-3/4" />
+                  <div className="h-4 shimmer rounded-lg w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -92,12 +97,16 @@ export const BrandListing: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600">{error}</p>
+          <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8 text-red-500" />
+          </div>
+          <p className="text-gray-900 font-semibold text-lg mb-2">Something went wrong</p>
+          <p className="text-gray-500 text-sm mb-6">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-rose-600 transition-all shadow-lg shadow-orange-200/50"
           >
             Try Again
           </button>
@@ -107,255 +116,169 @@ export const BrandListing: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile App Header - match Home */}
-      <div className="md:hidden bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">G</span>
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">GlobalEats</h1>
-                <p className="text-xs text-gray-500">Browse Restaurants</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-stone-50">
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-8">
-          <div className="mb-4 md:mb-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
-              {searchTerm ? `Search Results for "${searchTerm}"` : "All Restaurants"}
-            </h1>
-            <p className="text-sm md:text-base text-gray-600">
-              {loading ? "Loading..." : `Discover amazing food from ${brands.length} restaurants`}
-            </p>
-            {searchTerm && (
-              <p className="text-xs md:text-sm text-orange-600 mt-1">
-                Found {brands.length} restaurants matching your search
-              </p>
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            {searchTerm ? (
+              <>Results for "<span className="gradient-text">{searchTerm}</span>"</>
+            ) : (
+              "All Restaurants"
             )}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {brands.length} restaurants available
+          </p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-5">
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-orange-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="Search restaurants, cuisines, or dishes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 text-sm shadow-sm transition-all"
+            />
           </div>
-          <div className="flex items-center space-x-2 md:space-x-3">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowFilters(!showFilters)}
-              className={showFilters ? "bg-orange-50 border-orange-200" : ""}
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
-            <div className="flex items-center space-x-2">
-              <SortAsc className="w-4 h-4 text-gray-500" />
+        </div>
+
+        {/* Cuisine Pills + Sort */}
+        <div className="flex items-center gap-3 mb-6 overflow-x-auto scrollbar-hide pb-1">
+          <div className="flex gap-2 flex-shrink-0">
+            {CUISINES.map((cuisine) => (
+              <button
+                key={cuisine}
+                onClick={() => setSelectedCuisine(cuisine)}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  selectedCuisine === cuisine
+                    ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-200/50"
+                    : "bg-white text-gray-600 border border-gray-200 hover:border-orange-300 hover:text-orange-600"
+                }`}
+              >
+                {cuisine}
+              </button>
+            ))}
+          </div>
+          <div className="ml-auto flex-shrink-0 hidden sm:block">
+            <div className="relative">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs md:text-sm"
+                className="appearance-none px-4 py-2 pr-8 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 cursor-pointer"
               >
-                <option value="rating">Sort by Rating</option>
-                <option value="name">Sort by Name</option>
-                <option value="delivery_time">Sort by Delivery Time</option>
+                {SORT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
             </div>
           </div>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-6 md:mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
-            <div className="md:col-span-2 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
-              <input
-                type="text"
-                placeholder="Search restaurants or cuisines..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 md:pl-10 pr-4 py-2.5 md:py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
-              />
-            </div>
-            <select
-              value={selectedCuisine}
-              onChange={(e) => setSelectedCuisine(e.target.value)}
-              className="px-3 md:px-4 py-2.5 md:py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
-            >
-              <option value="">All Cuisines</option>
-              <option value="Pizza">Pizza</option>
-              <option value="Burgers">Burgers</option>
-              <option value="Indian">Indian</option>
-              <option value="Chinese">Chinese</option>
-              <option value="South Indian">South Indian</option>
-              <option value="Desserts">Desserts</option>
-              <option value="Coffee">Coffee & Tea</option>
-              <option value="Healthy">Healthy Food</option>
-              <option value="Bakery">Bakery</option>
-            </select>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 md:px-4 py-2.5 md:py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
-            >
-              <option value="rating">Sort by Rating</option>
-              <option value="name">Sort by Name</option>
-              <option value="delivery_time">Sort by Delivery Time</option>
-            </select>
-          </div>
-          
-          {/* Advanced Filters */}
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-6 pt-6 border-t border-gray-200"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Price Range
-                  </label>
-                  <select className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <option>Any Price</option>
-                    <option>Under ₹200</option>
-                    <option>₹200 - ₹500</option>
-                    <option>₹500 - ₹1000</option>
-                    <option>Above ₹1000</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Delivery Time
-                  </label>
-                  <select className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <option>Any Time</option>
-                    <option>Under 30 min</option>
-                    <option>30-45 min</option>
-                    <option>45+ min</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Rating
-                  </label>
-                  <select className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <option>Any Rating</option>
-                    <option>4.5+ Stars</option>
-                    <option>4.0+ Stars</option>
-                    <option>3.5+ Stars</option>
-                  </select>
-                </div>
-              </div>
-            </motion.div>
-          )}
         </div>
 
         {/* Restaurant Grid */}
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
-        >
-          {brands.map((brand) => (
-            <motion.div key={brand.id} variants={item}>
-              <Link to={`/brands/${brand.slug || brand.id}`}>
-                <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-0">
-                  <div className="relative">
-                    <div className="aspect-video overflow-hidden">
-                      <img
-                        src={brand.coverImage || "/api/placeholder/400/200"}
-                        alt={brand.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-30 transition-all duration-300" />
-                    </div>
-                    
-                    {/* Offers Badge */}
-                    {brand.offers.length > 0 && (
-                      <div className="absolute top-3 left-3">
-                        <Badge
-                          variant="error"
-                          className="text-white bg-red-500 shadow-lg"
-                        >
-                          {brand.offers[0].title}
-                        </Badge>
+        {brands.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+            <p className="text-4xl mb-4">🔍</p>
+            <p className="text-gray-900 font-semibold text-lg mb-2">No restaurants found</p>
+            <p className="text-gray-500 text-sm mb-6">Try adjusting your search or filters</p>
+            <button onClick={() => { setSearchTerm(""); setSelectedCuisine("All"); }}
+              className="text-orange-600 font-medium text-sm hover:underline"
+            >
+              Clear all filters
+            </button>
+          </div>
+        ) : (
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: { opacity: 0 },
+              show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+            }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"
+          >
+            {brands.map((brand, i) => (
+              <motion.div
+                key={brand.id}
+                variants={{
+                  hidden: { opacity: 0, y: 30 },
+                  show: { opacity: 1, y: 0 },
+                }}
+              >
+                <Link to={`/brands/${brand.slug || brand.id}`}>
+                  <div className="group glass rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                    {/* Image */}
+                    <div className="relative aspect-[16/10] overflow-hidden">
+                      {brand.coverImage ? (
+                        <img
+                          src={brand.coverImage}
+                          alt={brand.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className={`w-full h-full bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]} flex items-center justify-center`}>
+                          <span className="text-6xl">{["🍛", "🥗", "🍕", "🌯", "🍗", "🍔"][i % 6]}</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                      
+                      {/* Rating */}
+                      <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm">
+                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                        <span className="text-xs font-bold text-gray-900">{brand.rating}</span>
+                        <span className="text-[10px] text-gray-500">({brand.totalReviews})</span>
                       </div>
-                    )}
-                    
-                    {/* Status Badge */}
-                    <div className="absolute top-3 right-3">
-                      <Badge variant="success" className="bg-green-500 text-white shadow-lg">
-                        Open
-                      </Badge>
-                    </div>
-                    
-                    {/* Logo */}
-                    <div className="absolute bottom-3 right-3 bg-white rounded-full p-2 shadow-lg">
-                      <img
-                        src={brand.logo || "/api/placeholder/60/60"}
-                        alt={brand.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    </div>
-                  </div>
 
-                  <div className="p-4 md:p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-lg md:text-xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors">
+                      {/* Offer */}
+                      {brand.offers.length > 0 && (
+                        <div className="absolute bottom-3 left-3 bg-gradient-to-r from-orange-500 to-rose-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-lg">
+                          {brand.offers[0].title}
+                        </div>
+                      )}
+
+                      {/* Logo */}
+                      <div className="absolute bottom-3 right-3 w-11 h-11 bg-white rounded-xl shadow-lg flex items-center justify-center border border-gray-100">
+                        {brand.logo ? (
+                          <img src={brand.logo} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                        ) : (
+                          <span className="text-xl">{["🍛", "🥗", "🍕", "🌯", "🍗", "🍔"][i % 6]}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors truncate">
                         {brand.name}
                       </h3>
-                      <div className="flex items-center space-x-1">
-                        <Rating rating={brand.rating} size="sm" />
-                        <span className="text-sm text-gray-500 ml-1">
-                          ({brand.totalReviews})
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                        {brand.description || brand.cuisines.join(" • ")}
+                      </p>
+
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                        <div className="flex items-center gap-3 text-xs text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" /> 25-35 min
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5" /> ₹{brand.outlets[0]?.deliveryFee || 25}
+                          </span>
+                        </div>
+                        <span className="text-xs font-medium text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                          Order →
                         </span>
                       </div>
                     </div>
-
-                    <p className="text-gray-600 mb-3 md:mb-4 line-clamp-2 text-sm md:text-base">
-                      {brand.description || brand.cuisines.join(" • ")}
-                    </p>
-
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3 md:space-x-4 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1 text-orange-500" />
-                          <span className="font-medium">25-35 mins</span>
-                        </div>
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1 text-gray-400" />
-                          <span>₹{brand.outlets[0]?.deliveryFee || 25} delivery</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-wrap gap-1.5 md:gap-2">
-                        {brand.cuisines.slice(0, 2).map((cuisine) => (
-                          <Badge key={cuisine} variant="info" size="sm">
-                            {cuisine}
-                          </Badge>
-                        ))}
-                        {brand.cuisines.length > 2 && (
-                          <Badge variant="info" size="sm">
-                            +{brand.cuisines.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-orange-600 font-semibold text-xs md:text-sm group-hover:text-orange-700">
-                        Order Now →
-                      </div>
-                    </div>
                   </div>
-                </Card>
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
       </div>
     </div>
   );

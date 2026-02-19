@@ -9,6 +9,14 @@ const Outlet = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    owner_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: "users",
+        key: "id",
+      },
+    },
     brand_id: {
       type: DataTypes.UUID,
       allowNull: true,

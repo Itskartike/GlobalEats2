@@ -33,7 +33,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   return (
     <motion.button
-      whileTap={{ scale: 0.98 }}
+      whileTap={{ scale: 0.95 }}
       className={`
         inline-flex items-center justify-center font-medium rounded-lg
         transition-all duration-200 focus:outline-none focus:ring-2

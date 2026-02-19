@@ -10,10 +10,10 @@ module.exports = {
         type: Sequelize.INTEGER,
       },
       user_id: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: false,
         references: {
-          model: "Users", // Assumes your users table is named 'Users'
+          model: "users",
           key: "id",
         },
         onUpdate: "CASCADE",

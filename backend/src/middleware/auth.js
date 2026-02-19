@@ -134,7 +134,7 @@ const checkOwnership = (model, paramName = "id") => {
       }
 
       // Check if user owns the resource
-      const ownerField = model.name === "Restaurant" ? "owner_id" : "user_id";
+      const ownerField = ["Brand", "Outlet", "VendorProfile"].includes(model.name) ? "owner_id" : "user_id";
 
       if (resource[ownerField] !== req.user.id && req.user.role !== "admin") {
         return res.status(403).json({

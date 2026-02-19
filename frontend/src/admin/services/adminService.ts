@@ -566,6 +566,148 @@ class AdminService {
       );
     }
   }
+
+  // ==================== PLATFORM CATALOG ====================
+
+  async getCatalogBrands(filters?: { search?: string; vendor_id?: string; status?: string }) {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append("search", filters.search);
+      if (filters?.vendor_id) params.append("vendor_id", filters.vendor_id);
+      if (filters?.status) params.append("status", filters.status);
+      const response = await api.get(`/admin/catalog/brands?${params.toString()}`);
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch catalog brands");
+    }
+  }
+
+  async getCatalogOutlets(filters?: { search?: string; vendor_id?: string; city?: string }) {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append("search", filters.search);
+      if (filters?.vendor_id) params.append("vendor_id", filters.vendor_id);
+      if (filters?.city) params.append("city", filters.city);
+      const response = await api.get(`/admin/catalog/outlets?${params.toString()}`);
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch catalog outlets");
+    }
+  }
+
+  async getCatalogMenuItems(filters?: { search?: string; brand_id?: string }) {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.search) params.append("search", filters.search);
+      if (filters?.brand_id) params.append("brand_id", filters.brand_id);
+      const response = await api.get(`/admin/catalog/menu-items?${params.toString()}`);
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch catalog menu items");
+    }
+  }
+
+  async toggleCatalogBrand(brandId: string) {
+    const response = await api.put(`/admin/catalog/brands/${brandId}/toggle`);
+    return response.data;
+  }
+
+  async toggleCatalogOutlet(outletId: string) {
+    const response = await api.put(`/admin/catalog/outlets/${outletId}/toggle`);
+    return response.data;
+  }
+
+  // ==================== ANALYTICS ====================
+
+  async getRevenueAnalytics(period: string = "month") {
+    try {
+      const response = await api.get(`/admin/analytics/revenue?period=${period}`);
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch revenue analytics");
+    }
+  }
+
+  async getOrderTrends(period: string = "week") {
+    try {
+      const response = await api.get(`/admin/analytics/orders?period=${period}`);
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch order trends");
+    }
+  }
+
+  async getTopPerformers() {
+    try {
+      const response = await api.get("/admin/analytics/top-performers");
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch top performers");
+    }
+  }
+
+  // ==================== VENDOR MANAGEMENT ====================
+
+  async getVendors(filters?: { status?: string; search?: string; page?: number; limit?: number }) {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.status) params.append("status", filters.status);
+      if (filters?.search) params.append("search", filters.search);
+      if (filters?.page) params.append("page", String(filters.page));
+      if (filters?.limit) params.append("limit", String(filters.limit));
+      const response = await api.get(`/admin/vendors?${params.toString()}`);
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch vendors");
+    }
+  }
+
+  async getVendorDetail(vendorId: string) {
+    try {
+      const response = await api.get(`/admin/vendors/${vendorId}`);
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch vendor detail");
+    }
+  }
+
+  async approveVendor(vendorId: string) {
+    const response = await api.put(`/admin/vendors/${vendorId}/approve`);
+    return response.data;
+  }
+
+  async rejectVendor(vendorId: string, reason: string) {
+    const response = await api.put(`/admin/vendors/${vendorId}/reject`, { reason });
+    return response.data;
+  }
+
+  async suspendVendor(vendorId: string, reason: string) {
+    const response = await api.put(`/admin/vendors/${vendorId}/suspend`, { reason });
+    return response.data;
+  }
+
+  async updateVendorCommission(vendorId: string, commissionRate: number) {
+    const response = await api.put(`/admin/vendors/${vendorId}/commission`, { commission_rate: commissionRate });
+    return response.data;
+  }
+
+  async getPlatformAnalytics() {
+    try {
+      const response = await api.get("/admin/platform-analytics");
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || "Failed to fetch platform analytics");
+    }
+  }
 }
 
 export default new AdminService();
