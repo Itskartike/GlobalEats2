@@ -123,6 +123,25 @@ const login = async (req, res) => {
   }
 };
 
+// Logout user
+const logout = async (req, res) => {
+  try {
+    // JWT is stateless on the server unless refresh tokens are tracked in DB. 
+    // We just return success so the client can safely delete its local tokens.
+    res.json({
+      success: true,
+      message: "Logged out successfully"
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error during logout",
+      error: error.message
+    });
+  }
+};
+
 // Forgot password
 const forgotPassword = async (req, res) => {
   try {
@@ -475,6 +494,7 @@ const updateProfile = async (req, res) => {
 module.exports = {
   register,
   login,
+  logout,
   verifyEmail,
   sendVerificationEmail,
   forgotPassword,

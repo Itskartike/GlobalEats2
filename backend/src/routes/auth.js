@@ -135,6 +135,7 @@ router.get("/verify-email/:token", authController.verifyEmail);
 router.post("/send-verification-email", authenticateToken, authController.sendVerificationEmail);
 
 // Protected routes
+router.post("/logout", authController.logout);
 router.get("/profile", authenticateToken, authController.getProfile);
 router.put(
   "/profile",
