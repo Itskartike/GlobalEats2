@@ -82,26 +82,67 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
   res.json({ status: "ok" });
 });
 
-// List user transactions
+// List user transactions (with associated order info)
 router.get("/my", auth.authenticateToken, async (req, res, next) => {
   try {
+    const { Order } = require("../models/associations");
+    const { Op } = require("sequelize");
     const userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "User ID not found in token" });
+    }
+
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(50, parseInt(req.query.limit) || 20);
     const offset = (page - 1) * limit;
+    const statusFilter = req.query.status;
+
+    const whereClause = { user_id: userId };
+    if (statusFilter && statusFilter !== "all") {
+      whereClause.status = statusFilter;
+    }
+
     const { rows, count } = await Payment.findAndCountAll({
-      where: { user_id: userId },
+      where: whereClause,
+      include: [
+        {
+          model: Order,
+          as: "order",
+          attributes: ["id", "order_number", "total_amount", "status"],
+          required: false,
+        },
+      ],
       order: [["created_at", "DESC"]],
       limit,
       offset,
     });
-    res.json({ success: true, data: rows, pagination: { page, limit, total: count } });
+
+    // Compute summary stats over ALL user transactions (for the summary cards)
+    const allPayments = await Payment.findAll({
+      where: { user_id: userId },
+      attributes: ["amount", "status", "refund_amount"],
+    });
+    const totalSpent = allPayments
+      .filter((p) => p.status === "success")
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+    const totalRefunded = allPayments.reduce(
+      (sum, p) => sum + Number(p.refund_amount || 0),
+      0
+    );
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) },
+      summary: {
+        totalSpent: totalSpent.toFixed(2),
+        totalRefunded: totalRefunded.toFixed(2),
+        totalTransactions: count,
+      },
+    });
   } catch (err) {
     next(err);
   }
 });
 
 module.exports = router;
-
-
-

@@ -39,12 +39,12 @@ export const paymentService = {
     return res.data;
   },
 
-  async myTransactions(page: number = 1, limit: number = 20) {
-    const res = await api.get(
-      `/payments/my?page=${encodeURIComponent(page)}&limit=${encodeURIComponent(
-        limit
-      )}`
-    );
+  async myTransactions(page: number = 1, limit: number = 20, status?: string) {
+    let url = `/payments/my?page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`;
+    if (status && status !== "all") {
+      url += `&status=${encodeURIComponent(status)}`;
+    }
+    const res = await api.get(url);
     return res.data;
   },
 };

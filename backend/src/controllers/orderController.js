@@ -7,6 +7,7 @@ const {
   MenuItem,
   OutletMenuItem,
   Address,
+  Payment,
 } = require("../models/associations");
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
@@ -236,6 +237,27 @@ class OrderController {
               unit_price: validatedItem.unitPrice,
               total_price: validatedItem.totalPrice,
               special_instructions: validatedItem.specialInstructions,
+            },
+            { transaction }
+          );
+        }
+
+        // Automatically create a Payment record for this order
+        // (COD orders get a payment record with status 'pending';
+        //  Razorpay orders will have their record updated via /payments/verify)
+        const existingPayment = await Payment.findOne({
+          where: { order_id: order.id },
+          transaction,
+        });
+        if (!existingPayment) {
+          await Payment.create(
+            {
+              order_id: order.id,
+              user_id: userId,
+              payment_method: paymentMethod || "cod",
+              amount: totalAmount,
+              currency: "INR",
+              status: paymentMethod === "cod" ? "pending" : "pending",
             },
             { transaction }
           );

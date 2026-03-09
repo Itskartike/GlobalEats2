@@ -45,7 +45,7 @@ export const BottomNav: React.FC = () => {
                   className={`transition-all duration-300 ${isActive ? "scale-110" : "scale-100"}`}
                 />
                 
-                {item.badge && item.badge > 0 && (
+                {typeof item.badge === 'number' && item.badge > 0 && (
                   <span className="absolute top-1 right-2.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm animate-scale-in">
                     {item.badge}
                   </span>

@@ -37,6 +37,7 @@ import {
 import { OrderDetailsModal } from "../components/order/OrderDetailsModal";
 import { CancelOrderModal } from "../components/order/CancelOrderModal";
 import { AuthModal } from "../components/auth/AuthModal";
+import paymentService from "../services/paymentService";
 import toast from "react-hot-toast";
 
 export const Profile: React.FC = () => {
@@ -70,6 +71,14 @@ export const Profile: React.FC = () => {
     hasPrev: false,
   });
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>("");
+
+  // Transactions state
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
+  const [txError, setTxError] = useState("");
+  const [txSummary, setTxSummary] = useState({ totalSpent: "0.00", totalRefunded: "0.00", totalTransactions: 0 });
+  const [txPagination, setTxPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [txStatusFilter, setTxStatusFilter] = useState("all");
 
   // Order Details Modal state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -341,6 +350,40 @@ export const Profile: React.FC = () => {
       fetchOrders(1, orderStatusFilter || undefined);
     }
   }, [activeTab, fetchOrders, orderStatusFilter]);
+
+  // Fetch transactions
+  const fetchTransactions = useCallback(
+    async (page = 1, status = "all") => {
+      if (!token || !isAuthenticated) return;
+      setTxLoading(true);
+      setTxError("");
+      try {
+        const res = await paymentService.myTransactions(page, 20, status);
+        if (res.success) {
+          setTransactions(res.data || []);
+          setTxSummary(res.summary || { totalSpent: "0.00", totalRefunded: "0.00", totalTransactions: 0 });
+          setTxPagination({
+            page: res.pagination?.page || 1,
+            totalPages: res.pagination?.totalPages || 1,
+            total: res.pagination?.total || 0,
+          });
+        } else {
+          setTxError("Failed to load transactions");
+        }
+      } catch {
+        setTxError("Failed to load transactions");
+      } finally {
+        setTxLoading(false);
+      }
+    },
+    [token, isAuthenticated]
+  );
+
+  useEffect(() => {
+    if (activeTab === "transactions") {
+      fetchTransactions(1, txStatusFilter);
+    }
+  }, [activeTab, fetchTransactions, txStatusFilter]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -637,12 +680,12 @@ export const Profile: React.FC = () => {
       {/* Hero Header - Mobile Optimized */}
       <div className="bg-gradient-to-br from-orange-500 to-rose-500 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-black/5" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-          <div className="flex flex-col md:flex-row items-center md:justify-between gap-6">
-            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 md:py-12">
+          <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 sm:gap-6">
+            <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6 text-center md:text-left">
               {/* Profile Picture */}
               <div className="relative group">
-                <div className="w-28 h-28 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center overflow-hidden border-4 border-white/30 shadow-xl">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center overflow-hidden border-4 border-white/30 shadow-xl">
                   {imagePreview ? (
                     <img
                       src={imagePreview}
@@ -667,10 +710,10 @@ export const Profile: React.FC = () => {
               </div>
 
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{user.name}</h1>
-                <p className="text-orange-100 text-base mb-2">{user.email}</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{user.name}</h1>
+                <p className="text-orange-100 text-sm sm:text-base mb-2">{user.email}</p>
                 
-                <div className="flex flex-wrap justify-center md:justify-start gap-3 text-sm">
+                <div className="flex flex-wrap justify-center md:justify-start gap-2 sm:gap-3 text-xs sm:text-sm">
                   <div className="flex items-center bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">
                     <Calendar className="w-3.5 h-3.5 mr-1.5" />
                     <span>Joined {new Date(user.created_at || Date.now()).toLocaleDateString()}</span>
@@ -733,8 +776,8 @@ export const Profile: React.FC = () => {
       </div>
 
       {/* Mobile Sticky Tab Navigation */}
-      <div className="lg:hidden sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm overflow-x-auto scrollbar-hide">
-        <div className="flex min-w-full p-2 gap-2">
+      <div className="lg:hidden sticky top-[64px] z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-sm overflow-x-auto scrollbar-hide py-1">
+        <div className="flex min-w-max px-3 gap-2 pb-1">
           {[
             { id: "profile", label: "Profile", icon: User },
             { id: "orders", label: "Orders", icon: ShoppingBag },
@@ -818,21 +861,20 @@ export const Profile: React.FC = () => {
               transition={{ duration: 0.3 }}
             >
               <Card className="shadow-lg border-0 ring-1 ring-gray-100 overflow-hidden md:rounded-2xl rounded-none md:shadow-md shadow-none bg-transparent md:bg-white">
-                {/* Profile Tab */}
                 {activeTab === "profile" && (
-                  <div className="p-0 md:p-6 space-y-6">
-                    <div className="md:hidden flex items-center gap-2 mb-4 px-4">
-                       <User className="w-5 h-5 text-orange-500" />
-                       <h2 className="text-lg font-bold text-gray-900">Personal Info</h2>
-                    </div>
+                  <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                   
                   {/* Header with Edit Button */}
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6 sm:mb-8">
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">
+                      <div className="sm:hidden flex items-center gap-2 mb-1">
+                         <User className="w-5 h-5 text-orange-500" />
+                         <h2 className="text-xl font-bold text-gray-900">Personal Info</h2>
+                      </div>
+                      <h2 className="hidden sm:block text-2xl font-bold text-gray-900">
                         Profile Information
                       </h2>
-                      <p className="text-gray-600 mt-1">
+                      <p className="text-sm sm:text-base text-gray-600 mt-1">
                         Manage your personal information and preferences
                       </p>
                     </div>
@@ -843,14 +885,14 @@ export const Profile: React.FC = () => {
                           setIsEditing(true);
                         }}
                         variant="outline"
-                        className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                        className="w-full sm:w-auto bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Profile
                       </Button>
                     ) : (
-                      <div className="flex space-x-2">
-                        <Button onClick={handleSaveProfile} disabled={isSaving}>
+                      <div className="flex sm:space-x-2 gap-2 sm:gap-0 font-medium">
+                        <Button className="flex-1 sm:flex-none" onClick={handleSaveProfile} disabled={isSaving}>
                           {isSaving ? (
                             <>
                               <Settings className="w-4 h-4 mr-2 animate-spin" />
@@ -864,6 +906,7 @@ export const Profile: React.FC = () => {
                           )}
                         </Button>
                         <Button
+                          className="flex-1 sm:flex-none"
                           onClick={() => {
                             setIsEditing(false);
                             setFormData({
@@ -882,7 +925,7 @@ export const Profile: React.FC = () => {
                   </div>
 
                   {/* Form Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Full Name
@@ -1016,20 +1059,20 @@ export const Profile: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="p-5 md:p-6"
+                  className="p-4 sm:p-6"
                 >
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900">
+                  <div className="mb-6 sm:mb-8">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                       Security Settings
                     </h2>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-sm sm:text-base text-gray-600 mt-1">
                       Manage your password and security preferences
                     </p>
                   </div>
 
                   {/* Change Password */}
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  <div className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-100">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-4">
                       Change Password
                     </h3>
                     <div className="space-y-4">
@@ -1157,18 +1200,18 @@ export const Profile: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="p-5 md:p-6"
+                  className="p-4 sm:p-6"
                 >
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900">
+                  <div className="mb-6 sm:mb-8">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                       Notification Settings
                     </h2>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-sm sm:text-base text-gray-600 mt-1">
                       Choose how you want to receive notifications
                     </p>
                   </div>
 
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {[
                       {
                         key: "email",
@@ -1309,25 +1352,26 @@ export const Profile: React.FC = () => {
                       {orders.map((order) => (
                         <div
                           key={order.id}
-                          className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
+                          className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                          onClick={() => handleViewOrderDetails(order)}
                         >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <Package className="w-5 h-5 text-orange-500" />
+                          {/* Accent line on left based on status */}
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${getOrderStatusDisplay(order.status || "pending").color.split(' ')[0].replace('text-', 'bg-')}`}></div>
+                          
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex items-start gap-3">
+                              <div className="bg-gray-50 p-2 rounded-lg hidden sm:block">
+                                <Package className="w-5 h-5 text-gray-400" />
+                              </div>
                               <div>
-                                <h3 className="font-semibold text-gray-900">
-                                  Order #
-                                  {order.orderNumber ||
-                                    (order as any).order_number ||
-                                    "N/A"}
+                                <h3 className="font-semibold text-gray-900 text-base sm:text-lg leading-tight">
+                                  {order.restaurant?.brand?.name || order.restaurant?.outletName || "Restaurant Order"}
                                 </h3>
-                                <p className="text-sm text-gray-500">
-                                  {order.createdAt || (order as any).created_at
+                                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                                  Order #{order.orderNumber || (order as any).order_number || "N/A"} • {order.createdAt || (order as any).created_at
                                     ? new Date(
-                                        order.createdAt ||
-                                          (order as any).created_at
+                                        order.createdAt || (order as any).created_at
                                       ).toLocaleDateString("en-US", {
-                                        year: "numeric",
                                         month: "short",
                                         day: "numeric",
                                         hour: "2-digit",
@@ -1337,223 +1381,47 @@ export const Profile: React.FC = () => {
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-lg font-semibold text-gray-900 mb-1">
-                                ₹
-                                {order.totalAmount ||
-                                  (order as any).total_amount ||
-                                  0}
+                            <div className="text-right flex flex-col items-end shrink-0 pl-3">
+                              <div className="text-base sm:text-lg font-bold text-gray-900 mb-1.5">
+                                ₹{order.totalAmount || (order as any).total_amount || 0}
                               </div>
                               <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  getOrderStatusDisplay(
-                                    order.status || "pending"
-                                  ).color
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${
+                                  getOrderStatusDisplay(order.status || "pending").color
                                 }`}
                               >
-                                {
-                                  getOrderStatusDisplay(
-                                    order.status || "pending"
-                                  ).icon
-                                }
-                                {
-                                  getOrderStatusDisplay(
-                                    order.status || "pending"
-                                  ).label
-                                }
+                                {getOrderStatusDisplay(order.status || "pending").icon}
+                                {getOrderStatusDisplay(order.status || "pending").label}
                               </span>
                             </div>
                           </div>
 
-                          <div className="mb-4">
-                            {/* Enhanced Delivery Address Display */}
-                            <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                              <div className="flex items-start gap-2">
-                                <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                  <div className="text-sm font-medium text-gray-900 mb-1">
-                                    Delivery Address
-                                  </div>
-                                  {order.deliveryAddress ? (
-                                    <div className="text-sm text-gray-600">
-                                      {order.deliveryAddress.recipient_name && (
-                                        <div className="font-medium text-gray-800">
-                                          {order.deliveryAddress.recipient_name}
-                                        </div>
-                                      )}
-                                      <div>
-                                        {order.deliveryAddress.fullAddress ||
-                                          `${order.deliveryAddress.street_address || ""}${order.deliveryAddress.landmark ? ", " + order.deliveryAddress.landmark : ""}, ${order.deliveryAddress.city || ""}, ${order.deliveryAddress.state || ""} ${order.deliveryAddress.pincode || ""}`}
-                                      </div>
-                                      {order.deliveryAddress.phone && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          📞 {order.deliveryAddress.phone}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="text-sm text-gray-500">
-                                      Address not available
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                          {/* Quick Items Summary */}
+                          {order.items && order.items.length > 0 && (
+                            <div className="text-sm text-gray-600 truncate mb-3 bg-gray-50/50 p-2.5 rounded-lg border border-gray-100">
+                               {order.items.map(item => `${item.quantity}x ${item.name}`).join(", ")}
                             </div>
+                          )}
 
-                            {/* Restaurant Information */}
-                            {order.restaurant && (
-                              <div className="bg-orange-50 rounded-lg p-3 mb-3">
-                                <div className="flex items-start gap-2">
-                                  <Package className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                                  <div className="flex-1">
-                                    <div className="text-sm font-medium text-gray-900 mb-1">
-                                      Restaurant
-                                    </div>
-                                    <div className="text-sm text-gray-600">
-                                      <div className="font-medium text-gray-800">
-                                        {order.restaurant.brand?.name ||
-                                          order.restaurant.outletName ||
-                                          "Restaurant"}
-                                      </div>
-                                      {order.restaurant.outletAddress && (
-                                        <div className="text-xs text-gray-500">
-                                          {order.restaurant.outletAddress}
-                                        </div>
-                                      )}
-                                      {order.restaurant.brand?.cuisine && (
-                                        <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded-full mt-1">
-                                          {order.restaurant.brand.cuisine}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Order Items Summary */}
-                            {order.items && order.items.length > 0 && (
-                              <div className="bg-blue-50 rounded-lg p-3 mb-3">
-                                <div className="text-sm font-medium text-gray-900 mb-2">
-                                  Items ({order.items.length})
-                                </div>
-                                <div className="space-y-1">
-                                  {order.items
-                                    .slice(0, 3)
-                                    .map((item, index) => (
-                                      <div
-                                        key={index}
-                                        className="flex justify-between text-sm"
-                                      >
-                                        <span className="text-gray-600">
-                                          {item.quantity}x {item.name}
-                                          {item.isVegetarian && (
-                                            <span className="text-green-600 ml-1">
-                                              🟢
-                                            </span>
-                                          )}
-                                        </span>
-                                        <span className="text-gray-700 font-medium">
-                                          ₹
-                                          {(item.price * item.quantity).toFixed(
-                                            2
-                                          )}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  {order.items.length > 3 && (
-                                    <div className="text-xs text-gray-500 pt-1">
-                                      +{order.items.length - 3} more items
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="text-sm text-gray-600 mb-2">
-                              <strong>Payment Method:</strong>{" "}
-                              {order.paymentMethod?.toUpperCase() ||
-                                (order as any).payment_method?.toUpperCase() ||
-                                "N/A"}
-                            </div>
-                            {order.specialInstructions && (
-                              <div className="text-sm text-gray-600">
-                                <strong>Special Instructions:</strong>{" "}
-                                {order.specialInstructions}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="border-t border-gray-200 pt-4">
-                            <div className="flex justify-between items-center text-sm">
-                              <div className="space-y-1">
-                                <div>
-                                  Subtotal: ₹
-                                  {order.subtotal ||
-                                    (order as any).subtotal ||
-                                    0}
-                                </div>
-                                <div>
-                                  Delivery Fee: ₹
-                                  {order.deliveryFee ||
-                                    (order as any).delivery_fee ||
-                                    0}
-                                </div>
-                                <div>
-                                  Tax: ₹
-                                  {order.taxAmount ||
-                                    (order as any).tax_amount ||
-                                    0}
-                                </div>
-                                {(order.discountAmount ||
-                                  (order as any).discount_amount ||
-                                  0) > 0 && (
-                                  <div className="text-green-600">
-                                    Discount: -₹
-                                    {order.discountAmount ||
-                                      (order as any).discount_amount}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="text-right">
-                                {order.estimatedDeliveryTime && (
-                                  <div className="text-gray-500 mb-2">
-                                    Est. Delivery:{" "}
-                                    {new Date(
-                                      order.estimatedDeliveryTime
-                                    ).toLocaleTimeString("en-US", {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </div>
-                                )}
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleViewOrderDetails(order)
-                                    }
-                                  >
-                                    View Details
-                                  </Button>
-                                  {order.status === "delivered" && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        // TODO: Implement reorder functionality
-                                        toast.success(
-                                          "Reorder feature coming soon!"
-                                        );
-                                      }}
-                                    >
-                                      Reorder
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
+                          <div className="border-t border-gray-100 mt-2 pt-3 flex justify-between items-center">
+                            <span className="text-xs sm:text-sm text-orange-600 font-medium flex items-center hover:text-orange-700">
+                              View full details <span className="ml-1">→</span>
+                            </span>
+                            
+                            <div className="flex gap-2">
+                              {order.status === "delivered" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-xs px-3 bg-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // prevent modal from opening
+                                    toast.success("Reorder feature coming soon!");
+                                  }}
+                                >
+                                  Reorder
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1605,201 +1473,157 @@ export const Profile: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="space-y-6"
+                  className="p-4 sm:p-6 space-y-5"
                 >
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      Transaction History
-                    </h2>
-                    <div className="flex gap-2">
-                      <select className="px-3 py-2 border border-gray-300 rounded-lg">
-                        <option>All Transactions</option>
-                        <option>Payments</option>
-                        <option>Refunds</option>
-                        <option>Credits</option>
-                      </select>
-                      <Button variant="outline" size="sm">
-                        Export
-                      </Button>
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Transaction History</h2>
+                    <select
+                      className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                      value={txStatusFilter}
+                      onChange={(e) => setTxStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Transactions</option>
+                      <option value="success">Successful</option>
+                      <option value="pending">Pending</option>
+                      <option value="failed">Failed</option>
+                      <option value="refunded">Refunded</option>
+                    </select>
+                  </div>
+
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-green-50 rounded-xl p-3 sm:p-4 border border-green-100">
+                      <p className="text-xs text-green-600 font-medium uppercase tracking-wide">Total Spent</p>
+                      <p className="text-base sm:text-xl font-bold text-green-800 mt-1">₹{txSummary.totalSpent}</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-xl p-3 sm:p-4 border border-blue-100">
+                      <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Refunded</p>
+                      <p className="text-base sm:text-xl font-bold text-blue-800 mt-1">₹{txSummary.totalRefunded}</p>
+                    </div>
+                    <div className="bg-orange-50 rounded-xl p-3 sm:p-4 border border-orange-100">
+                      <p className="text-xs text-orange-600 font-medium uppercase tracking-wide">Total</p>
+                      <p className="text-base sm:text-xl font-bold text-orange-800 mt-1">{txSummary.totalTransactions}</p>
                     </div>
                   </div>
 
-                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Transaction
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Date
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Type
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Amount
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Status
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {[
-                            {
-                              id: "TXN001",
-                              date: "2024-01-15",
-                              description: "Pizza Palace Order #ORD001",
-                              amount: -28.5,
-                              type: "payment",
-                              status: "completed",
-                            },
-                            {
-                              id: "TXN002",
-                              date: "2024-01-12",
-                              description: "Burger Barn Order #ORD002",
-                              amount: -15.75,
-                              type: "payment",
-                              status: "completed",
-                            },
-                            {
-                              id: "TXN003",
-                              date: "2024-01-10",
-                              description: "Sushi Spot Order #ORD003 - Refund",
-                              amount: 22.0,
-                              type: "refund",
-                              status: "completed",
-                            },
-                            {
-                              id: "TXN004",
-                              date: "2024-01-05",
-                              description: "Wallet Top-up",
-                              amount: 50.0,
-                              type: "credit",
-                              status: "completed",
-                            },
-                          ].map((transaction) => (
-                            <tr
-                              key={transaction.id}
-                              className="hover:bg-gray-50"
-                            >
-                              <td className="px-6 py-4">
-                                <div className="flex items-center">
-                                  <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                                      transaction.type === "payment"
-                                        ? "bg-red-100"
-                                        : transaction.type === "refund"
-                                          ? "bg-green-100"
-                                          : "bg-blue-100"
-                                    }`}
-                                  >
-                                    {transaction.type === "payment" && (
-                                      <Receipt className="w-4 h-4 text-red-600" />
-                                    )}
-                                    {transaction.type === "refund" && (
-                                      <Receipt className="w-4 h-4 text-green-600" />
-                                    )}
-                                    {transaction.type === "credit" && (
-                                      <CreditCard className="w-4 h-4 text-blue-600" />
-                                    )}
-                                  </div>
-                                  <div>
-                                    <div className="text-sm font-medium text-gray-900">
-                                      {transaction.description}
-                                    </div>
-                                    <div className="text-sm text-gray-500">
-                                      ID: {transaction.id}
-                                    </div>
-                                  </div>
+                  {/* Loading */}
+                  {txLoading && (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+                      <span className="ml-3 text-gray-500 text-sm">Loading transactions...</span>
+                    </div>
+                  )}
+
+                  {/* Error */}
+                  {txError && !txLoading && (
+                    <div className="text-center py-10">
+                      <XCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+                      <p className="text-gray-600 text-sm mb-3">{txError}</p>
+                      <Button variant="outline" size="sm" onClick={() => fetchTransactions(1, txStatusFilter)}>Retry</Button>
+                    </div>
+                  )}
+
+                  {/* Empty */}
+                  {!txLoading && !txError && transactions.length === 0 && (
+                    <div className="text-center py-10">
+                      <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <h3 className="font-semibold text-gray-700 mb-1">No transactions yet</h3>
+                      <p className="text-sm text-gray-500">Your payment history will appear here once you place an order.</p>
+                    </div>
+                  )}
+
+                  {/* Transaction List */}
+                  {!txLoading && !txError && transactions.length > 0 && (
+                    <div className="space-y-3">
+                      {transactions.map((tx) => {
+                        const isSuccess = tx.status === "success";
+                        const isRefund = tx.status === "refunded" || Number(tx.refund_amount) > 0;
+                        const isFailed = tx.status === "failed" || tx.status === "cancelled";
+                        const statusColor = isSuccess
+                          ? "bg-green-100 text-green-700"
+                          : isFailed
+                          ? "bg-red-100 text-red-700"
+                          : isRefund
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-yellow-100 text-yellow-700";
+                        const iconBg = isSuccess
+                          ? "bg-green-50"
+                          : isFailed
+                          ? "bg-red-50"
+                          : "bg-orange-50";
+
+                        return (
+                          <div
+                            key={tx.id}
+                            className="flex items-start gap-3 p-3 sm:p-4 bg-white rounded-xl border border-gray-100 hover:border-orange-200 hover:shadow-sm transition-all"
+                          >
+                            <div className={`${iconBg} p-2.5 rounded-xl shrink-0`}>
+                              {isRefund ? (
+                                <Receipt className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <CreditCard className="w-4 h-4 text-orange-600" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-gray-900 truncate">
+                                    {tx.order
+                                      ? `Order #${tx.order.order_number}`
+                                      : `Payment`}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-0.5">
+                                    {tx.payment_method?.toUpperCase()} &bull;&nbsp;
+                                    {new Date(tx.created_at).toLocaleDateString("en-IN", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}
+                                  </p>
+                                  {tx.transaction_id && (
+                                    <p className="text-[10px] text-gray-400 mt-0.5 font-mono truncate">
+                                      TXN: {tx.transaction_id}
+                                    </p>
+                                  )}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {transaction.date}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span
-                                  className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                    transaction.type === "payment"
-                                      ? "bg-red-100 text-red-800"
-                                      : transaction.type === "refund"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-blue-100 text-blue-800"
-                                  }`}
-                                >
-                                  {transaction.type.charAt(0).toUpperCase() +
-                                    transaction.type.slice(1)}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <span
-                                  className={
-                                    transaction.amount >= 0
-                                      ? "text-green-600"
-                                      : "text-red-600"
-                                  }
-                                >
-                                  {transaction.amount >= 0 ? "+" : ""}$
-                                  {Math.abs(transaction.amount).toFixed(2)}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                  {transaction.status.charAt(0).toUpperCase() +
-                                    transaction.status.slice(1)}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                <div className="text-right shrink-0">
+                                  <p className={`text-sm font-bold ${isSuccess ? "text-gray-900" : isFailed ? "text-red-500" : "text-blue-600"}`}>
+                                    {isFailed ? "-" : "+"}₹{Number(tx.amount).toFixed(2)}
+                                  </p>
+                                  {isRefund && Number(tx.refund_amount) > 0 && (
+                                    <p className="text-xs text-blue-600">Refund: ₹{Number(tx.refund_amount).toFixed(2)}</p>
+                                  )}
+                                  <span className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>
+                                    {tx.status.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  )}
 
-                  {/* Transaction Summary */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                          <CreditCard className="w-4 h-4 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Total Spent</p>
-                          <p className="text-lg font-semibold text-gray-900">
-                            $44.25
-                          </p>
-                        </div>
-                      </div>
+                  {/* Pagination */}
+                  {txPagination.totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 pt-2">
+                      <Button
+                        variant="outline" size="sm"
+                        disabled={txPagination.page <= 1}
+                        onClick={() => fetchTransactions(txPagination.page - 1, txStatusFilter)}
+                      >Previous</Button>
+                      <span className="text-xs text-gray-500">
+                        Page {txPagination.page} of {txPagination.totalPages}
+                      </span>
+                      <Button
+                        variant="outline" size="sm"
+                        disabled={txPagination.page >= txPagination.totalPages}
+                        onClick={() => fetchTransactions(txPagination.page + 1, txStatusFilter)}
+                      >Next</Button>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                          <Receipt className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Total Refunds</p>
-                          <p className="text-lg font-semibold text-gray-900">
-                            $22.00
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                          <ShoppingBag className="w-4 h-4 text-orange-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Total Orders</p>
-                          <p className="text-lg font-semibold text-gray-900">
-                            3
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </motion.div>
               )}
             </Card>

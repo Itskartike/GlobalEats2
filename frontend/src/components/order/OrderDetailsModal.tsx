@@ -417,13 +417,16 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="flex justify-between items-center p-6 border-t border-gray-200">
-                <div className="flex space-x-3">
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-between items-center p-4 sm:p-6 border-t border-gray-200 gap-3 sm:gap-0">
+                <Button variant="outline" onClick={onClose} className="w-full sm:w-auto mt-3 sm:mt-0">
+                  Close
+                </Button>
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                   {canCancel && onCancelOrder && (
                     <Button
                       variant="outline"
                       onClick={() => onCancelOrder(order.id)}
-                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50"
                     >
                       Cancel Order
                     </Button>
@@ -434,16 +437,13 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         // This would open a rating modal or form
                         onRateOrder(order.id, 5, "Great order!");
                       }}
-                      className="bg-yellow-500 hover:bg-yellow-600"
+                      className="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600"
                     >
                       <Star className="w-4 h-4 mr-2" />
                       Rate Order
                     </Button>
                   )}
                 </div>
-                <Button variant="outline" onClick={onClose}>
-                  Close
-                </Button>
               </div>
             </motion.div>
           </div>

@@ -105,6 +105,10 @@ Order.belongsTo(Address, { foreignKey: "address_id", as: "address" });
 Order.hasMany(OrderItem, { foreignKey: "order_id", as: "orderItems" });
 Order.hasMany(Payment, { foreignKey: "order_id", as: "payments" });
 
+// Payment associations
+Payment.belongsTo(Order, { foreignKey: "order_id", as: "order" });
+Payment.belongsTo(User, { foreignKey: "user_id", as: "user" });
+
 // OrderItem associations
 OrderItem.belongsTo(Order, { foreignKey: "order_id", as: "order" });
 OrderItem.belongsTo(MenuItem, {

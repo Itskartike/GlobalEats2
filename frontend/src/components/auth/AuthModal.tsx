@@ -39,7 +39,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -70,54 +70,56 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
 
         {/* Form Content */}
-        <AnimatePresence mode="wait">
-          {mode === "login" && (
-            <motion.div
-              key="login"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Login
-                onSwitchToRegister={() => handleModeSwitch("register")}
-                onSwitchToForgotPassword={() =>
-                  handleModeSwitch("forgot-password")
-                }
-                onClose={handleClose}
-              />
-            </motion.div>
-          )}
+        <div className="overflow-y-auto custom-scrollbar max-h-[80vh] w-full pb-8 sm:pb-4">
+          <AnimatePresence mode="wait">
+            {mode === "login" && (
+              <motion.div
+                key="login"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Login
+                  onSwitchToRegister={() => handleModeSwitch("register")}
+                  onSwitchToForgotPassword={() =>
+                    handleModeSwitch("forgot-password")
+                  }
+                  onClose={handleClose}
+                />
+              </motion.div>
+            )}
 
-          {mode === "register" && (
-            <motion.div
-              key="register"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Register
-                onSwitchToLogin={() => handleModeSwitch("login")}
-                onClose={handleClose}
-              />
-            </motion.div>
-          )}
+            {mode === "register" && (
+              <motion.div
+                key="register"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Register
+                  onSwitchToLogin={() => handleModeSwitch("login")}
+                  onClose={handleClose}
+                />
+              </motion.div>
+            )}
 
-          {mode === "forgot-password" && (
-            <motion.div
-              key="forgot-password"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ForgotPassword
-                onSwitchToLogin={() => handleModeSwitch("login")}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {mode === "forgot-password" && (
+              <motion.div
+                key="forgot-password"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ForgotPassword
+                  onSwitchToLogin={() => handleModeSwitch("login")}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
     </div>
   );
