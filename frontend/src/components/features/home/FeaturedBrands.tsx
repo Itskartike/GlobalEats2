@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, Star, Clock, ArrowRight } from "lucide-react";
+import { ChevronRight, Star, Clock, ArrowRight, Settings2 } from "lucide-react";
 import { Brand } from "../../../types/brand";
 import brandService from "../../../services/brandService";
 import LocationContext from "../../../contexts/LocationContext";
@@ -24,7 +24,12 @@ export const FeaturedBrands: React.FC = () => {
   const [featuredBrands, setFeaturedBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [sortBy, setSortBy] = useState("Relevance");
   const locationContext = useContext(LocationContext);
+
+  const FILTERS = ["All", "Indian", "Chinese", "Pizza", "Biryani", "Healthy", "Fast Food"];
+  const SORT_OPTIONS = ["Relevance", "Rating", "Delivery Time", "Price"];
 
   useEffect(() => {
     const fetchFeaturedBrands = async () => {
@@ -88,13 +93,19 @@ export const FeaturedBrands: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-8 sm:py-12">
+      <section className="py-8 md:py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+             <div>
+                <div className="h-8 shimmer rounded-lg w-64 mb-3" />
+                <div className="h-4 shimmer rounded-lg w-96" />
+             </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="rounded-2xl overflow-hidden">
-                <div className="aspect-[4/3] shimmer rounded-2xl" />
-                <div className="p-4 space-y-3">
+              <div key={i} className="rounded-2xl border border-zinc-100 p-2">
+                <div className="aspect-[16/10] shimmer rounded-xl" />
+                <div className="p-3 space-y-3">
                   <div className="h-5 shimmer rounded-lg w-3/4" />
                   <div className="h-4 shimmer rounded-lg w-1/2" />
                 </div>
@@ -124,24 +135,54 @@ export const FeaturedBrands: React.FC = () => {
   };
 
   return (
-    <section className="py-6 md:py-10">
+    <section className="py-8 md:py-12 bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="flex items-end justify-between mb-6">
+        {/* Header & Sort */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900">
-              {locationContext?.selectedOutlet ? "Available Brands" : "Popular Brands"}
+            <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight">
+              Top Restaurants Near You
             </h2>
-            <p className="text-sm text-zinc-500 mt-1">
+            <p className="text-zinc-500 mt-1.5 text-base">
               {locationContext?.selectedOutlet
-                ? `Brands at ${locationContext.selectedOutlet.name}`
-                : "Discover top-rated restaurants near you"}
+                ? `Discover the best spots at ${locationContext.selectedOutlet.name}`
+                : "Explore top-rated spots delivering to your location right now"}
             </p>
           </div>
-          <Link to="/restaurants" className="hidden sm:flex items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 transition-colors group">
-            View All
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
+          
+          <div className="flex items-center gap-3 self-start md:self-auto">
+             <div className="relative group">
+                <select 
+                  className="appearance-none bg-zinc-50 border border-zinc-200 text-zinc-700 text-sm font-medium rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:ring-2 focus:ring-orange-500/20 cursor-pointer"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  {SORT_OPTIONS.map(opt => <option key={opt}>{opt}</option>)}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500">
+                  <Settings2 className="w-4 h-4" />
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Sticky Filter Tabs */}
+        <div className="sticky top-[72px] z-30 bg-white/90 backdrop-blur-md py-3 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-zinc-100">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            {FILTERS.map(filter => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-sm border ${
+                  activeFilter === filter 
+                    ? "bg-zinc-900 text-white border-zinc-900" 
+                    : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300"
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
         </div>
 
         {featuredBrands.length === 0 ? (

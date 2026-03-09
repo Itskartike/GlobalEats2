@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, ChevronDown, Loader2, Handshake, ShoppingBag, User } from "lucide-react";
+import { MapPin, ChevronDown, Loader2, Handshake, ShoppingBag, User } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useCartStore } from "../../store/cartStore";
 import { useLocation as useAppLocation } from "../../hooks/useLocation";
@@ -50,7 +50,7 @@ const Header: React.FC = () => {
     <>
       <header
         className={`sticky top-0 z-40 transition-all duration-300 ${
-          isScrolled ? "glass border-b border-gray-200/50" : "bg-transparent border-transparent"
+          isScrolled ? "bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-sm" : "bg-white/80 backdrop-blur-sm border-transparent"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -121,40 +121,24 @@ const Header: React.FC = () => {
                 )}
               </div>
 
-              {/* Search Bar */}
-              <div className="flex-1 max-w-md relative group">
-                <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-orange-500 transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Search restaurants, cuisines..."
-                  className="input-field py-2.5 pl-10 text-sm bg-gray-100/50 border-transparent focus:bg-white"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      const query = (e.currentTarget as HTMLInputElement).value;
-                      if (query.trim()) {
-                        window.location.href = `/restaurants?search=${encodeURIComponent(query)}`;
-                      }
-                    }
-                  }}
-                />
+              <div className="flex-1 max-w-xl mx-4 overflow-hidden hidden xl:block">
+                {/* Empty space intentionally left for navbar balance */}
               </div>
             </div>
 
             {/* Actions */}
             <div className="flex items-center gap-3">
               {/* Desktop Partner Link */}
-              <Link to="/partner" className="hidden lg:flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors mr-2 px-3 py-2 rounded-lg hover:bg-emerald-50">
+              <Link to="/partner" className="hidden lg:flex items-center gap-1.5 text-sm font-semibold text-zinc-700 hover:text-orange-600 transition-colors mr-2 px-4 py-2 rounded-full border border-zinc-200 hover:border-orange-200 hover:bg-orange-50">
                 <Handshake className="w-4 h-4" />
-                <span>Partner</span>
+                <span>Partner with us</span>
               </Link>
 
               {/* Cart Button */}
-              <Link to="/cart" className="relative p-2.5 rounded-xl hover:bg-black/5 transition-colors btn-press group">
+              <Link to="/cart" className="relative p-2.5 rounded-xl hover:bg-zinc-100 transition-colors btn-press group">
                 <ShoppingBag className="w-5 h-5 text-gray-700 group-hover:text-orange-600 transition-colors" />
                 {itemCount > 0 && (
-                  <span className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm animate-scale-in">
-                    {itemCount}
-                  </span>
+                  <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-600 rounded-full animate-pulse shadow-[0_0_0_2px_#fff]" />
                 )}
               </Link>
 
