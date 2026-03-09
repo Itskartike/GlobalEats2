@@ -1,32 +1,12 @@
 import { api } from "./api";
-import { loadGoogleMaps } from "../utils/googleMaps";
+import {
+  reverseGeocode as nominatimReverseGeocode,
+  searchPlaces as nominatimSearchPlaces,
+  GeocodeResult,
+  NominatimPlace,
+} from "../utils/nominatim";
 
-export interface GoogleMapsPlace {
-  place_id: string;
-  formatted_address: string;
-  name?: string;
-  geometry: {
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
-  address_components: Array<{
-    long_name: string;
-    short_name: string;
-    types: string[];
-  }>;
-}
-
-export interface GeocodeResult {
-  address: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-  latitude: number;
-  longitude: number;
-}
+export type { GeocodeResult, NominatimPlace as GoogleMapsPlace };
 
 export interface OutletWithDistance {
   id: string;
@@ -63,107 +43,23 @@ export const getCurrentLocation = (): Promise<GeolocationPosition> => {
   });
 };
 
-// Google Maps - Reverse Geocoding
+// Reverse Geocoding via Nominatim
 export const reverseGeocode = async (
   latitude: number,
   longitude: number
 ): Promise<GeocodeResult | null> => {
-  try {
-    if (!window.google?.maps) {
-      throw new Error("Google Maps is not loaded");
-    }
-
-    const geocoder = new window.google.maps.Geocoder();
-    const latlng = { lat: latitude, lng: longitude };
-
-    return new Promise((resolve, reject) => {
-      geocoder.geocode({ location: latlng }, (results, status) => {
-        if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
-          const result = results[0];
-          const addressComponents = result.address_components;
-
-          const getComponent = (types: string[]) => {
-            const component = addressComponents?.find(
-              (comp: google.maps.GeocoderAddressComponent) =>
-                types.some((type) => comp.types.includes(type))
-            );
-            return component?.long_name || "";
-          };
-
-          resolve({
-            address: result.formatted_address || "",
-            city: getComponent(["locality", "administrative_area_level_2"]),
-            state: getComponent(["administrative_area_level_1"]),
-            postal_code: getComponent(["postal_code"]),
-            country: getComponent(["country"]),
-            latitude,
-            longitude,
-          });
-        } else {
-          reject(new Error("Geocoding failed: " + status));
-        }
-      });
-    });
-  } catch (error) {
-    console.error("Reverse geocoding error:", error);
-    return null;
-  }
+  return nominatimReverseGeocode(latitude, longitude);
 };
 
-// Google Maps - Places Autocomplete Search
+// Place search via Nominatim
 export const searchPlaces = async (
   query: string
-): Promise<GoogleMapsPlace[]> => {
-  try {
-    if (!window.google?.maps) {
-      throw new Error("Google Maps is not loaded");
-    }
-
-    const service = new window.google.maps.places.PlacesService(
-      document.createElement("div")
-    );
-
-    return new Promise((resolve, reject) => {
-      const request = {
-        query,
-        fields: [
-          "place_id",
-          "formatted_address",
-          "name",
-          "geometry",
-          "address_components",
-        ],
-      };
-
-      service.textSearch(request, (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const places: GoogleMapsPlace[] = results.map(
-            (place: google.maps.places.PlaceResult) => ({
-              place_id: place.place_id || "",
-              formatted_address: place.formatted_address || "",
-              name: place.name,
-              geometry: {
-                location: {
-                  lat: place.geometry?.location?.lat() || 0,
-                  lng: place.geometry?.location?.lng() || 0,
-                },
-              },
-              address_components: place.address_components || [],
-            })
-          );
-          resolve(places);
-        } else {
-          reject(new Error("Places search failed: " + status));
-        }
-      });
-    });
-  } catch (error) {
-    console.error("Places search error:", error);
-    return [];
-  }
+): Promise<NominatimPlace[]> => {
+  return nominatimSearchPlaces(query);
 };
 
-// Calculate distance between two coordinates (Haversine formula - fallback)
+// Calculate distance between two coordinates (Haversine formula)
+// Used as primary distance calculator (no API key required)
 export const calculateDistance = (
   lat1: number,
   lng1: number,
@@ -180,12 +76,23 @@ export const calculateDistance = (
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; // Distance in kilometers
-  return Math.round(distance * 100) / 100; // Round to 2 decimal places
+  const distance = R * c;
+  return Math.round(distance * 100) / 100;
 };
 
-// Google Maps Distance Matrix API for accurate distance and travel time
-export const calculateDistanceWithGoogleMaps = async (
+// OpenRouteService Distance Matrix API (free tier: 2000 req/day)
+// Requires VITE_ORS_API_KEY in .env — falls back to Haversine if not set
+const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY || "";
+const ORS_BASE = "https://api.openrouteservice.org";
+
+const ORS_PROFILE_MAP: Record<string, string> = {
+  DRIVING: "driving-car",
+  WALKING: "foot-walking",
+  BICYCLING: "cycling-regular",
+  TRANSIT: "driving-car", // ORS doesn't support transit — fall back to driving
+};
+
+export const calculateDistanceWithORS = async (
   origins: Array<{ lat: number; lng: number }>,
   destinations: Array<{ lat: number; lng: number }>,
   mode: "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING" = "DRIVING"
@@ -196,118 +103,160 @@ export const calculateDistanceWithGoogleMaps = async (
     status: string;
   }>
 > => {
-  try {
-    if (!window.google?.maps) {
-      throw new Error("Google Maps is not loaded");
-    }
-
-    const service = new window.google.maps.DistanceMatrixService();
-
-    return new Promise((resolve, reject) => {
-      service.getDistanceMatrix(
-        {
-          origins: origins,
-          destinations: destinations,
-          travelMode: mode,
-          unitSystem: 1, // METRIC
-          avoidHighways: false,
-          avoidTolls: false,
+  if (!ORS_API_KEY) {
+    // Graceful fallback: use Haversine for each pair
+    return destinations.map((dest) => {
+      const origin = origins[0];
+      const km = calculateDistance(origin.lat, origin.lng, dest.lat, dest.lng);
+      const estimatedMinutes = Math.round((km / 40) * 60); // assume 40 km/h avg
+      return {
+        distance: {
+          text: `${km.toFixed(1)} km`,
+          value: km * 1000,
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (response: any, status: string) => {
-          if (status === "OK" && response) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const results = response.rows[0].elements.map((element: any) => ({
-              distance: element.distance || { text: "N/A", value: 0 },
-              duration: element.duration || { text: "N/A", value: 0 },
-              status: element.status,
-            }));
-            resolve(results);
-          } else {
-            reject(new Error(`Distance Matrix request failed: ${status}`));
-          }
-        }
-      );
+        duration: {
+          text: `${estimatedMinutes} min`,
+          value: estimatedMinutes * 60,
+        },
+        status: "OK",
+      };
+    });
+  }
+
+  try {
+    const profile = ORS_PROFILE_MAP[mode] || "driving-car";
+
+    // ORS matrix API takes [lng, lat] (GeoJSON order)
+    const allLocations = [
+      ...origins.map((o) => [o.lng, o.lat]),
+      ...destinations.map((d) => [d.lng, d.lat]),
+    ];
+
+    const sources = origins.map((_, i) => i);
+    const dests = destinations.map((_, i) => origins.length + i);
+
+    const response = await fetch(
+      `${ORS_BASE}/v2/matrix/${profile}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: ORS_API_KEY,
+        },
+        body: JSON.stringify({
+          locations: allLocations,
+          sources,
+          destinations: dests,
+          metrics: ["distance", "duration"],
+          units: "km",
+        }),
+      }
+    );
+
+    if (!response.ok) throw new Error(`ORS error: ${response.status}`);
+
+    const data = await response.json();
+
+    // ORS returns distances[source][dest] and durations[source][dest]
+    const distances: number[] = data.distances?.[0] || [];
+    const durations: number[] = data.durations?.[0] || [];
+
+    return destinations.map((_, i) => {
+      const km = distances[i] ?? 0;
+      const secs = durations[i] ?? 0;
+      const mins = Math.round(secs / 60);
+
+      return {
+        distance: {
+          text: `${km.toFixed(1)} km`,
+          value: km * 1000,
+        },
+        duration: {
+          text: mins >= 60
+            ? `${Math.floor(mins / 60)} hr ${mins % 60} min`
+            : `${mins} min`,
+          value: secs,
+        },
+        status: "OK",
+      };
     });
   } catch (error) {
-    console.error("Google Maps Distance Matrix error:", error);
-    throw error;
+    console.error("ORS Distance Matrix error:", error);
+    // Fallback to Haversine
+    return destinations.map((dest) => {
+      const origin = origins[0];
+      const km = calculateDistance(origin.lat, origin.lng, dest.lat, dest.lng);
+      const estimatedMinutes = Math.round((km / 40) * 60);
+      return {
+        distance: { text: `${km.toFixed(1)} km`, value: km * 1000 },
+        duration: { text: `${estimatedMinutes} min`, value: estimatedMinutes * 60 },
+        status: "OK",
+      };
+    });
   }
 };
 
-// Enhanced function to find nearby outlets with Google Maps distance calculation
+// Backward-compat alias used by GoogleMapsDistanceDemo
+export const calculateDistanceWithGoogleMaps = calculateDistanceWithORS;
+
+// Find nearby outlets and enrich with real road distances from ORS
 export const findNearbyOutletsWithGoogleMaps = async (
   latitude: number,
   longitude: number,
   radius = 10
 ): Promise<OutletWithDistance[]> => {
   try {
-    // First get outlets from backend (basic distance calculation)
     const response = await api.get(
       `/location/nearby-outlets?latitude=${latitude}&longitude=${longitude}&radius=${radius}`
     );
     const outlets: OutletWithDistance[] =
       response.data.data?.outlets || response.data.outlets || response.data;
 
-    if (!outlets || outlets.length === 0) {
+    if (!outlets || outlets.length === 0) return outlets;
+
+    try {
+      const userLocation = [{ lat: latitude, lng: longitude }];
+      const outletLocations = outlets.map((outlet: OutletWithDistance) => ({
+        lat: outlet.latitude,
+        lng: outlet.longitude,
+      }));
+
+      const distanceResults = await calculateDistanceWithORS(
+        userLocation,
+        outletLocations,
+        "DRIVING"
+      );
+
+      return outlets
+        .map((outlet: OutletWithDistance, index: number) => {
+          const d = distanceResults[index];
+          if (d && d.status === "OK") {
+            return {
+              ...outlet,
+              distance: d.distance.value / 1000,
+              distanceText: d.distance.text,
+              duration: d.duration.value / 60,
+              durationText: d.duration.text,
+              travelMode: "DRIVING",
+            };
+          }
+          return outlet;
+        })
+        .sort(
+          (a: OutletWithDistance, b: OutletWithDistance) =>
+            a.distance - b.distance
+        );
+    } catch (error) {
+      console.warn("Distance enrichment failed, using basic calculation:", error);
       return outlets;
     }
-
-    // If Google Maps is available, enhance with accurate distance/time data
-    if (window.google?.maps) {
-      try {
-        // Ensure Google Maps is loaded
-        await loadGoogleMaps();
-
-        const userLocation = [{ lat: latitude, lng: longitude }];
-        const outletLocations = outlets.map((outlet: OutletWithDistance) => ({
-          lat: outlet.latitude,
-          lng: outlet.longitude,
-        }));
-
-        const distanceResults = await calculateDistanceWithGoogleMaps(
-          userLocation,
-          outletLocations,
-          "DRIVING"
-        );
-
-        // Enhance outlets with Google Maps data
-        return outlets
-          .map((outlet: OutletWithDistance, index: number) => {
-            const distanceData = distanceResults[index];
-            if (distanceData && distanceData.status === "OK") {
-              return {
-                ...outlet,
-                distance: distanceData.distance.value / 1000, // Convert meters to km
-                distanceText: distanceData.distance.text,
-                duration: distanceData.duration.value / 60, // Convert seconds to minutes
-                durationText: distanceData.duration.text,
-                travelMode: "DRIVING",
-              };
-            }
-            return outlet;
-          })
-          .sort(
-            (a: OutletWithDistance, b: OutletWithDistance) =>
-              a.distance - b.distance
-          );
-      } catch (error) {
-        console.warn(
-          "Google Maps distance calculation failed, using basic calculation:",
-          error
-        );
-        return outlets;
-      }
-    }
-
-    return outlets;
   } catch (error) {
     console.error("Error finding nearby outlets:", error);
     throw error;
   }
 };
 
-// Original function for backward compatibility
+// Original simple function (kept for backward compatibility)
 export const findNearbyOutlets = async (
   latitude: number,
   longitude: number,

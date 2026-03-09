@@ -113,6 +113,9 @@ const sendEmail = async (to, templateName, data = {}) => {
 
     if (useResend) {
       // Send via Resend HTTP API (works on Render)
+      console.log(`🚀 Attempting to send email via Resend to: ${to}`);
+      console.log(`📧 From Address: ${fromAddress}`);
+      
       const { data: result, error } = await resend.emails.send({
         from: fromAddress,
         to: [to],
@@ -121,10 +124,11 @@ const sendEmail = async (to, templateName, data = {}) => {
       });
 
       if (error) {
-        throw new Error(error.message);
+        console.error("❌ Resend API Error:", JSON.stringify(error, null, 2));
+        throw new Error(`Resend Error: ${error.message || "Unknown error"}`);
       }
 
-      console.log("Email sent via Resend:", result.id);
+      console.log("✅ Email sent successfully via Resend. ID:", result.id);
       return { success: true, messageId: result.id };
     } else {
       // Send via SMTP/nodemailer (local dev)

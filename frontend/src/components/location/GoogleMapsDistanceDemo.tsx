@@ -5,9 +5,8 @@ import { Card } from "../ui/Card";
 import {
   getCurrentLocation,
   findNearbyOutletsWithGoogleMaps,
-  calculateDistanceWithGoogleMaps,
+  calculateDistanceWithORS,
 } from "../../services/locationService";
-import { loadGoogleMaps } from "../../utils/googleMaps";
 import toast from "react-hot-toast";
 
 interface OutletWithDistance {
@@ -25,7 +24,7 @@ interface OutletWithDistance {
   travelMode?: string;
 }
 
-export const GoogleMapsDistanceDemo: React.FC = () => {
+export const DistanceDemo: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [outlets, setOutlets] = useState<OutletWithDistance[]>([]);
   const [userLocation, setUserLocation] = useState<{
@@ -39,16 +38,10 @@ export const GoogleMapsDistanceDemo: React.FC = () => {
   const handleFindOutlets = async () => {
     setIsLoading(true);
     try {
-      // Load Google Maps first
-      await loadGoogleMaps();
-      toast.success("Google Maps loaded successfully!");
-
-      // Get user location
       const position = await getCurrentLocation();
       const { latitude, longitude } = position.coords;
       setUserLocation({ lat: latitude, lng: longitude });
 
-      // Find nearby outlets with Google Maps enhanced data
       const nearbyOutlets = await findNearbyOutletsWithGoogleMaps(
         latitude,
         longitude
@@ -85,7 +78,7 @@ export const GoogleMapsDistanceDemo: React.FC = () => {
         lng: outlet.longitude || 0,
       }));
 
-      const distanceResults = await calculateDistanceWithGoogleMaps(
+      const distanceResults = await calculateDistanceWithORS(
         origins,
         destinations,
         mode
@@ -118,16 +111,11 @@ export const GoogleMapsDistanceDemo: React.FC = () => {
 
   const getTravelModeIcon = (mode: string) => {
     switch (mode) {
-      case "DRIVING":
-        return "🚗";
-      case "WALKING":
-        return "🚶";
-      case "TRANSIT":
-        return "🚌";
-      case "BICYCLING":
-        return "🚴";
-      default:
-        return "📍";
+      case "DRIVING": return "🚗";
+      case "WALKING": return "🚶";
+      case "TRANSIT": return "🚌";
+      case "BICYCLING": return "🚴";
+      default: return "📍";
     }
   };
 
@@ -137,11 +125,10 @@ export const GoogleMapsDistanceDemo: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              🗺️ Google Maps Distance Calculator
+              🗺️ Distance Calculator
             </h2>
             <p className="text-gray-600">
-              Find nearby outlets with accurate Google Maps distances and travel
-              times
+              Find nearby outlets with accurate distances and travel times
             </p>
           </div>
           <Button
@@ -216,7 +203,6 @@ export const GoogleMapsDistanceDemo: React.FC = () => {
                     </div>
 
                     <div className="text-right space-y-2">
-                      {/* Distance */}
                       <div className="flex items-center space-x-1">
                         <Route className="w-4 h-4 text-orange-600" />
                         <span className="text-sm font-medium text-orange-600">
@@ -225,7 +211,6 @@ export const GoogleMapsDistanceDemo: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Duration */}
                       {outlet.durationText && (
                         <div className="flex items-center space-x-1">
                           <Clock className="w-4 h-4 text-blue-600" />
@@ -235,14 +220,13 @@ export const GoogleMapsDistanceDemo: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Basic vs Enhanced */}
                       <div className="text-xs">
                         {outlet.distanceText ? (
                           <span className="text-green-600 font-medium">
-                            ✅ Google Maps
+                            ✅ Road distance
                           </span>
                         ) : (
-                          <span className="text-gray-500">📐 Basic calc</span>
+                          <span className="text-gray-500">📐 Straight-line</span>
                         )}
                       </div>
                     </div>
@@ -256,3 +240,6 @@ export const GoogleMapsDistanceDemo: React.FC = () => {
     </div>
   );
 };
+
+// Backward-compat export used by GoogleMapsTest.tsx
+export { DistanceDemo as GoogleMapsDistanceDemo };

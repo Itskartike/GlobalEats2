@@ -8,7 +8,7 @@ import React, {
 import { Outlet } from "../types/index";
 import { Brand } from "../types/brand";
 import { outletService } from "../services/outletService";
-import { loadGoogleMaps } from "../utils/googleMaps";
+import { reverseGeocode, geocodeAddress } from "../utils/nominatim";
 
 interface LocationState {
   latitude: number | null;
@@ -90,31 +90,13 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
         const { latitude, longitude } = position.coords;
 
         try {
-          // Try to get address using Google Maps Geocoding
+          // Try to get address using Nominatim reverse geocoding
           let address = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
           try {
-            await loadGoogleMaps();
-            if (window.google?.maps?.Geocoder) {
-              const geocoder = new window.google.maps.Geocoder();
-              const result = await new Promise<google.maps.GeocoderResponse>(
-                (resolve, reject) => {
-                  geocoder.geocode(
-                    { location: { lat: latitude, lng: longitude } },
-                    (results, status) => {
-                      if (status === "OK" && results && results[0]) {
-                        resolve({ results } as google.maps.GeocoderResponse);
-                      } else {
-                        reject(new Error("Geocoding failed"));
-                      }
-                    }
-                  );
-                }
-              );
-
-              if (result.results?.[0]) {
-                address = result.results[0].formatted_address;
-              }
+            const geocodeResult = await reverseGeocode(latitude, longitude);
+            if (geocodeResult?.address) {
+              address = geocodeResult.address;
             }
           } catch (geocodingError) {
             console.warn(
@@ -195,30 +177,16 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({
       setState((prevState) => ({ ...prevState, isLoading: true, error: null }));
 
       try {
-        await loadGoogleMaps();
+        const result = await geocodeAddress(searchAddress);
 
-        if (!window.google?.maps?.Geocoder) {
-          throw new Error("Google Maps Geocoding not available");
+        if (!result) {
+          throw new Error("Address not found");
         }
 
-        const geocoder = new window.google.maps.Geocoder();
-        const result = await new Promise<google.maps.GeocoderResponse>(
-          (resolve, reject) => {
-            geocoder.geocode({ address: searchAddress }, (results, status) => {
-              if (status === "OK" && results && results[0]) {
-                resolve({ results } as google.maps.GeocoderResponse);
-              } else {
-                reject(new Error("Address not found"));
-              }
-            });
-          }
-        );
-
-        if (result.results?.[0]) {
-          const location = result.results[0].geometry.location;
-          const latitude = location.lat();
-          const longitude = location.lng();
-          const formattedAddress = result.results[0].formatted_address;
+        {
+          const latitude = result.latitude;
+          const longitude = result.longitude;
+          const formattedAddress = result.address;
 
           setLocation(latitude, longitude, formattedAddress);
 

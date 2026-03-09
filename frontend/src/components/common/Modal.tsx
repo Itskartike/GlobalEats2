@@ -5,6 +5,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -12,12 +13,13 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
+  className = "",
 }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+      <div className={`bg-white rounded-lg shadow-lg w-full max-w-md ${className}`}>
         <div className="p-4 border-b">
           <h2 className="text-xl font-semibold">{title}</h2>
           <button

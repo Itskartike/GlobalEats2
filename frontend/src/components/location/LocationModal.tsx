@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "../../hooks/useLocation";
 import { Modal } from "../common/Modal";
 import { Button } from "../ui/Button";
@@ -10,11 +10,19 @@ export const LocationModal: React.FC = () => {
     closeModal,
     fetchLocation,
     searchLocationByAddress,
+    isLocationPermissionGranted,
     error,
     isLoading,
   } = useLocation();
   const [searchAddress, setSearchAddress] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+
+  // Auto-close the modal as soon as location permission is granted
+  useEffect(() => {
+    if (isLocationPermissionGranted && isModalOpen) {
+      closeModal();
+    }
+  }, [isLocationPermissionGranted, isModalOpen, closeModal]);
 
   const handleAllowLocation = () => {
     fetchLocation();
