@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Vite internal timestamp files (should never be committed)
+vite.config.ts.timestamp-*
