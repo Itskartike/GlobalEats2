@@ -119,14 +119,9 @@ export const FeaturedBrands: React.FC = () => {
     );
   }
 
-  const GRADIENTS = [
-    "from-orange-100 to-rose-100",
-    "from-violet-100 to-purple-100",
-    "from-emerald-100 to-teal-100",
-    "from-amber-100 to-yellow-100",
-    "from-blue-100 to-cyan-100",
-    "from-pink-100 to-rose-100",
-  ];
+  const getInitials = (name: string) => {
+    return name.charAt(0).toUpperCase();
+  };
 
   return (
     <section className="py-6 md:py-10">
@@ -137,7 +132,7 @@ export const FeaturedBrands: React.FC = () => {
             <h2 className="text-xl md:text-2xl font-bold text-gray-900">
               {locationContext?.selectedOutlet ? "Available Brands" : "Popular Brands"}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-zinc-500 mt-1">
               {locationContext?.selectedOutlet
                 ? `Brands at ${locationContext.selectedOutlet.name}`
                 : "Discover top-rated restaurants near you"}
@@ -165,13 +160,13 @@ export const FeaturedBrands: React.FC = () => {
                   transition={{ duration: 0.4, delay: i * 0.05 }}
                 >
                   <Link to={`/brands/${brand.slug}`}>
-                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-all active:scale-[0.99]">
-                      <div className="flex p-3 gap-3">
-                        <div className={`w-20 h-20 bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                    <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden hover:shadow-lg hover:border-zinc-300 transition-all active:scale-[0.99] group">
+                      <div className="flex p-3 gap-4">
+                        <div className="w-20 h-20 bg-zinc-100 rounded-xl flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                           {brand.logo ? (
-                            <img src={brand.logo} alt={brand.name} className="w-14 h-14 rounded-lg object-cover" />
+                            <img src={brand.logo} alt={brand.name} className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-3xl">{["🍛", "🥗", "🍕", "🌯", "🍗", "🍔"][i % 6]}</span>
+                            <span className="text-3xl font-bold text-zinc-400 font-serif">{getInitials(brand.name)}</span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0 py-0.5">
@@ -211,17 +206,15 @@ export const FeaturedBrands: React.FC = () => {
                   transition={{ duration: 0.5, delay: i * 0.08 }}
                 >
                   <Link to={`/brands/${brand.slug}`}>
-                    <div className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:border-gray-200 transition-all duration-300 hover:-translate-y-1">
+                    <div className="group bg-white rounded-2xl border border-zinc-200 overflow-hidden hover:shadow-2xl shadow-zinc-200/50 hover:border-zinc-300 transition-all duration-300 hover:-translate-y-1">
                       {/* Image */}
-                      <div className="relative aspect-[16/10] overflow-hidden">
+                      <div className="relative aspect-[16/10] overflow-hidden bg-zinc-100 flex items-center justify-center">
                         {brand.coverImage ? (
-                          <img src={brand.coverImage} alt={brand.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <img src={brand.coverImage} alt={brand.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                         ) : (
-                          <div className={`w-full h-full bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]} flex items-center justify-center`}>
-                            <span className="text-6xl">{["🍛", "🥗", "🍕", "🌯", "🍗", "🍔"][i % 6]}</span>
-                          </div>
+                          <span className="text-6xl font-bold text-zinc-300 font-serif">{getInitials(brand.name)}</span>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/60 via-transparent to-transparent" />
 
                         {/* Rating badge */}
                         <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm">
@@ -237,11 +230,11 @@ export const FeaturedBrands: React.FC = () => {
                         )}
 
                         {/* Logo */}
-                        <div className="absolute bottom-3 right-3 w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center border border-gray-100">
+                        <div className="absolute bottom-3 right-3 w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center border border-zinc-100 overflow-hidden">
                           {brand.logo ? (
-                            <img src={brand.logo} alt="" className="w-9 h-9 rounded-lg object-cover" />
+                            <img src={brand.logo} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-2xl">{["🍛", "🥗", "🍕", "🌯", "🍗", "🍔"][i % 6]}</span>
+                            <span className="text-2xl font-bold text-zinc-400 font-serif">{getInitials(brand.name)}</span>
                           )}
                         </div>
                       </div>
