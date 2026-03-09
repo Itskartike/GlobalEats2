@@ -54,77 +54,74 @@ const Header: React.FC = () => {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-16 w-full">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group btn-press">
-              <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/40 transition-shadow">
+            <Link to="/" className="flex items-center gap-1.5 sm:gap-2 group btn-press shrink-0 mr-auto sm:mr-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-orange-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/40 transition-shadow">
                 <span className="text-white font-black text-sm">G</span>
               </div>
-              <span className="text-xl font-bold tracking-tight text-gray-900">
+              <span className="text-[17px] sm:text-xl font-bold tracking-tight text-gray-900 shrink-0">
                 Global<span className="text-orange-600">Eats</span>
               </span>
             </Link>
 
-            {/* Desktop: Location & Search */}
-            <div className="hidden md:flex items-center flex-1 ml-8 gap-6">
-              {/* Location Picker */}
-              <div className="relative">
-                <button
-                  onClick={handleLocationClick}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer px-3 py-2 rounded-xl hover:bg-black/5 transition-all btn-press"
-                  disabled={isLocationLoading}
-                >
-                  {isLocationLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <MapPin className="w-4 h-4 text-orange-500" />
-                  )}
-                  <div className="flex flex-col text-left">
-                    <span className="text-sm font-semibold">
-                      {selectedOutlet
-                        ? selectedOutlet.name
-                        : isLocationPermissionGranted && nearbyOutlets.length > 0
-                        ? nearbyOutlets[0]?.name || "Select Outlet"
-                        : "Set Location"}
-                    </span>
-                  </div>
-                  <ChevronDown className="w-3 h-3 ml-1" />
-                </button>
+            {/* Location Picker */}
+            <div className="relative shrink min-w-0 sm:ml-8 sm:mr-auto">
+              <button
+                onClick={handleLocationClick}
+                className="flex items-center gap-1 sm:gap-2 text-gray-600 hover:text-gray-900 cursor-pointer px-1 sm:px-3 py-1.5 sm:py-2 rounded-xl hover:bg-black/5 transition-all text-left"
+                disabled={isLocationLoading}
+              >
+                {isLocationLoading ? (
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin shrink-0 text-orange-500" />
+                ) : (
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-orange-500" />
+                )}
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] sm:text-[11px] text-zinc-500 font-bold uppercase tracking-wider leading-none hidden sm:block mb-0.5">Delivering to</span>
+                  <span className="text-sm font-bold text-zinc-900 truncate max-w-[120px] sm:max-w-[200px]">
+                    {selectedOutlet
+                      ? selectedOutlet.name
+                      : isLocationPermissionGranted && nearbyOutlets.length > 0
+                      ? nearbyOutlets[0]?.name || "Select Outlet"
+                      : "Set Location"}
+                  </span>
+                </div>
+                <ChevronDown className="w-4 h-4 shrink-0 text-zinc-400" />
+              </button>
 
-                {/* Outlet Dropdown */}
-                {showOutletDropdown && nearbyOutlets.length > 0 && (
-                  <div className="absolute top-full left-0 mt-2 w-80 glass rounded-2xl overflow-hidden animate-scale-in origin-top-left">
-                    <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-orange-50/50 to-rose-50/50">
-                      <h3 className="font-semibold text-gray-900">Available Outlets</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">Select for delivery</p>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto custom-scrollbar">
-                      {nearbyOutlets.map((outlet: Outlet) => (
-                        <div
-                          key={outlet.id}
-                          className="p-3 hover:bg-orange-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors"
-                          onClick={() => handleOutletSelect(outlet)}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 text-sm">{outlet.name}</h4>
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-1">{outlet.address}</p>
-                            </div>
-                            <div className="text-right ml-2">
-                              <div className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-full">OPEN</div>
-                            </div>
+              {/* Outlet Dropdown */}
+              {showOutletDropdown && nearbyOutlets.length > 0 && (
+                <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-2 w-[260px] sm:w-80 glass bg-white/95 backdrop-blur-xl border border-zinc-200 rounded-2xl shadow-xl overflow-hidden animate-scale-in origin-top-right sm:origin-top-left z-50">
+                  <div className="p-3 sm:p-4 border-b border-gray-100 bg-gradient-to-r from-orange-50/50 to-rose-50/50 text-left">
+                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Available Outlets</h3>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5">Select for delivery</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto custom-scrollbar text-left">
+                    {nearbyOutlets.map((outlet: Outlet) => (
+                      <div
+                        key={outlet.id}
+                        className="p-3 hover:bg-orange-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors"
+                        onClick={() => handleOutletSelect(outlet)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <h4 className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{outlet.name}</h4>
+                            <p className="text-[10px] sm:text-xs text-gray-500 mt-1 line-clamp-1">{outlet.address}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-[9px] sm:text-[10px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md">OPEN</div>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-
-              <div className="flex-1 max-w-xl mx-4 overflow-hidden hidden xl:block">
-                {/* Empty space intentionally left for navbar balance */}
-              </div>
+                </div>
+              )}
             </div>
+
+            {/* Empty space intentionally left for navbar balance on Desktop */}
+            <div className="flex-1 max-w-xl mx-4 overflow-hidden hidden xl:block"></div>
 
             {/* Actions */}
             <div className="flex items-center gap-3">
@@ -135,7 +132,7 @@ const Header: React.FC = () => {
               </Link>
 
               {/* Cart Button */}
-              <Link to="/cart" className="relative p-2.5 rounded-xl hover:bg-zinc-100 transition-colors btn-press group">
+              <Link to="/cart" className="hidden md:block relative p-2.5 rounded-xl hover:bg-zinc-100 transition-colors btn-press group">
                 <ShoppingBag className="w-5 h-5 text-gray-700 group-hover:text-orange-600 transition-colors" />
                 {itemCount > 0 && (
                   <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-600 rounded-full animate-pulse shadow-[0_0_0_2px_#fff]" />
@@ -161,21 +158,7 @@ const Header: React.FC = () => {
                 </Button>
               )}
 
-              {/* Mobile: Simple User Icon (if logged in) or Login Icon */}
-              <button 
-                 onClick={() => !isAuthenticated && setIsAuthModalOpen(true)}
-                 className="md:hidden p-2.5 rounded-xl hover:bg-black/5 transition-colors btn-press"
-              >
-                  {isAuthenticated ? (
-                      <Link to="/profile">
-                         <div className="w-6 h-6 bg-gradient-to-br from-orange-400 to-rose-400 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
-                            {user?.name?.charAt(0)?.toUpperCase()}
-                         </div>
-                      </Link>
-                  ) : (
-                      <User className="w-5 h-5 text-gray-700" />
-                  )}
-              </button>
+
             </div>
           </div>
         </div>

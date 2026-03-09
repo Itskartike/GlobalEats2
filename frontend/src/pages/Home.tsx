@@ -1,13 +1,9 @@
 import React, { useContext, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Search, 
   MapPin,
-  Home as HomeIcon,
-  ShoppingBag,
-  User,
-  Heart,
   Percent,
   Clock,
   Building2,
@@ -23,7 +19,6 @@ import LocationContext from "../contexts/LocationContext";
 export const Home: React.FC = () => {
   const locationContext = useContext(LocationContext);
   const [searchQuery, setSearchQuery] = useState("");
-  const location = useLocation();
 
   if (!locationContext) {
     return (
@@ -280,23 +275,7 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-200/60 z-50">
-        <div className="flex items-center justify-around py-1">
-          {[
-            { to: "/", icon: HomeIcon, label: "Home", active: location.pathname === "/" },
-            { to: "/restaurants", icon: Search, label: "Search", active: false },
-            { to: "/orders", icon: ShoppingBag, label: "Orders", active: false },
-            { to: "/favorites", icon: Heart, label: "Favorites", active: false },
-            { to: "/profile", icon: User, label: "Profile", active: false },
-          ].map(item => (
-            <Link key={item.to} to={item.to} className={`flex flex-col items-center py-2 px-3 ${item.active ? "text-orange-600" : "text-gray-400"}`}>
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium mt-1">{item.label}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
+
 
       {/* Bottom padding for mobile nav */}
       <div className="md:hidden h-16" />

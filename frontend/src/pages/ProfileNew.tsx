@@ -36,6 +36,7 @@ import {
 } from "../services/orderService";
 import { OrderDetailsModal } from "../components/order/OrderDetailsModal";
 import { CancelOrderModal } from "../components/order/CancelOrderModal";
+import { AuthModal } from "../components/auth/AuthModal";
 import toast from "react-hot-toast";
 
 export const Profile: React.FC = () => {
@@ -52,6 +53,7 @@ export const Profile: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "profile" | "security" | "notifications" | "orders" | "transactions"
   >("profile");
@@ -594,25 +596,39 @@ export const Profile: React.FC = () => {
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
-        <Card className="p-8 text-center max-w-md mx-4 shadow-xl">
-          <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <User className="w-10 h-10 text-orange-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Access Your Profile
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Please log in to view and manage your profile information.
-          </p>
-          <Button
-            onClick={() => (window.location.href = "/")}
-            className="w-full"
-          >
-            Go to Home
-          </Button>
-        </Card>
-      </div>
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center pb-20 md:pb-0">
+          <Card className="p-8 text-center max-w-md mx-4 shadow-xl">
+            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <User className="w-10 h-10 text-orange-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Access Your Profile
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Please log in to view and manage your profile information, track orders, and save favorites.
+            </p>
+            <Button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="w-full bg-gradient-to-r from-orange-600 to-rose-600 hover:shadow-lg hover:shadow-orange-500/30 text-white border-0"
+              variant="primary"
+            >
+              Sign In / Register
+            </Button>
+            <Button
+              onClick={() => (window.location.href = "/")}
+              className="w-full mt-3"
+              variant="outline"
+            >
+              Go to Home
+            </Button>
+          </Card>
+        </div>
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
+      </>
     );
   }
 

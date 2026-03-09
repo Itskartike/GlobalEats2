@@ -316,7 +316,7 @@ export const BrandMenu: React.FC = () => {
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="fixed bottom-0 left-0 right-0 z-30 p-4 md:px-8"
+          className="hidden md:block fixed bottom-0 left-0 right-0 z-30 p-4 md:px-8"
         >
           <Link to="/cart">
             <div className="max-w-lg mx-auto bg-gradient-to-r from-orange-500 to-rose-500 rounded-2xl shadow-2xl shadow-orange-500/30 p-4 flex items-center justify-between text-white">

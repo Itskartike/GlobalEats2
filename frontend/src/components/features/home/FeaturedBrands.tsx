@@ -28,7 +28,15 @@ export const FeaturedBrands: React.FC = () => {
   const [sortBy, setSortBy] = useState("Relevance");
   const locationContext = useContext(LocationContext);
 
-  const FILTERS = ["All", "Indian", "Chinese", "Pizza", "Biryani", "Healthy", "Fast Food"];
+  const FILTERS = [
+    { id: "All", label: "All", emoji: "✨" },
+    { id: "Indian", label: "Indian", emoji: "🍛" },
+    { id: "Chinese", label: "Chinese", emoji: "🍜" },
+    { id: "Pizza", label: "Pizza", emoji: "🍕" },
+    { id: "Biryani", label: "Biryani", emoji: "🥘" },
+    { id: "Healthy", label: "Healthy", emoji: "🥗" },
+    { id: "Fast Food", label: "Fast Food", emoji: "🍔" }
+  ];
   const SORT_OPTIONS = ["Relevance", "Rating", "Delivery Time", "Price"];
 
   useEffect(() => {
@@ -176,15 +184,16 @@ export const FeaturedBrands: React.FC = () => {
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
             {FILTERS.map(filter => (
               <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-sm border ${
-                  activeFilter === filter 
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id)}
+                className={`whitespace-nowrap px-4 py-2 flex items-center gap-1.5 rounded-full text-sm font-semibold transition-all shadow-sm border ${
+                  activeFilter === filter.id 
                     ? "bg-zinc-900 text-white border-zinc-900" 
                     : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300"
                 }`}
               >
-                {filter}
+                <span className="text-base leading-none">{filter.emoji}</span>
+                <span>{filter.label}</span>
               </button>
             ))}
           </div>

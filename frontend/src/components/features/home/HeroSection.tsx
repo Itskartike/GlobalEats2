@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, MapPin, ChevronDown, Star, Truck, ArrowRight, Target } from "lucide-react";
+import { Search, ChevronDown, Star, Truck, Target } from "lucide-react";
 import { Button } from "../../ui/Button";
 
 interface HeroSectionProps {
@@ -57,80 +57,43 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Mobile Layout */}
-        <div className="md:hidden min-h-[85vh] flex flex-col pt-8 pb-12 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-8 mt-auto mb-auto"
-          >
-            <div className="text-center">
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-zinc-900 leading-tight tracking-tight mb-3">
-                Cravings, <br />
-                <span className="text-orange-600">delivered.</span>
-              </h1>
-              <p className="text-zinc-500 text-lg">Top restaurants to your door.</p>
-            </div>
-
-            {/* Premium Location Bar */}
-            <div className="px-2">
-              <button 
-                onClick={() => document.getElementById("location-modal")?.click()}
-                className="w-full bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-zinc-200 active:bg-zinc-50 transition-colors"
-               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-900">
-                    <MapPin className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Delivering to</p>
-                    <p className="text-sm font-semibold text-zinc-900 truncate max-w-[200px]">Current Location</p>
-                  </div>
-                </div>
-                <ChevronDown className="w-5 h-5 text-zinc-400" />
-              </button>
-            </div>
-
-            {/* Sleek Search Bar */}
-            <div className="px-2">
-              <div className="relative bg-white rounded-2xl flex items-center p-1.5 border border-zinc-200 shadow-sm focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
-                <Search className="ml-3 text-zinc-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Restaurant, groceries, dishes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-3 text-base bg-transparent focus:outline-none placeholder-zinc-400 text-zinc-900"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && searchQuery.trim()) {
-                      window.location.href = `/restaurants?search=${encodeURIComponent(searchQuery)}`;
-                    }
-                  }}
+        {/* Mobile Layout (Redesigned) */}
+        <div className="md:hidden relative z-10 -mx-4 sm:mx-0 mb-6">
+          {/* Mobile Hero Background Carousel */}
+          <div className="relative h-[320px] sm:rounded-b-[2.5rem] shrink-0 overflow-hidden shadow-sm">
+             <AnimatePresence mode="popLayout">
+                <motion.img 
+                  key={currentImageIdx}
+                  src={ROTATING_IMAGES[currentImageIdx]}
+                  alt="Delicious food background" 
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.5, ease: "easeInOut" }}
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
-                <button 
-                  onClick={() => searchQuery.trim() && (window.location.href = `/restaurants?search=${encodeURIComponent(searchQuery)}`)}
-                  className="p-3 bg-zinc-900 rounded-xl text-white hover:bg-orange-600 transition-colors"
+              </AnimatePresence>
+             <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-zinc-900/30 to-transparent" />
+             
+             {/* Floating text on image */}
+             <div className="absolute bottom-6 left-4 right-4 sm:left-6 sm:right-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full shadow-sm mb-4 border border-white/20"
                 >
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+                  <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white">Lightning fast</span>
+                </motion.div>
+                <h1 className="text-4xl sm:text-5xl font-extrabold text-white leading-tight tracking-tight mb-2 drop-shadow-md">
+                  Cravings, <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-rose-400">delivered.</span>
+                </h1>
+                <p className="text-zinc-200 text-sm font-medium drop-shadow-sm">Discover the best local restaurants.</p>
+             </div>
+          </div>
 
-            {/* Minimalist Categories */}
-            <div className="pt-2">
-              <div className="flex gap-2.5 overflow-x-auto scrollbar-hide px-2 pb-2">
-                {CUISINES.map((category) => (
-                  <button
-                    key={category}
-                    className="flex-shrink-0 bg-white border border-zinc-200 px-4 py-2 rounded-full text-sm font-medium text-zinc-700 shadow-sm active:bg-zinc-50 transition-all"
-                  >
-                    {category.split(' ').slice(1).join(' ')}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
         </div>
 
         {/* Desktop Layout */}
