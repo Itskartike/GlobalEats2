@@ -68,7 +68,12 @@ export const FeaturedBrands: React.FC = () => {
           }
         }
 
-        const response = await brandService.getAllBrands({ featured: true, limit: 6 });
+        const response = await brandService.getAllBrands({ 
+          featured: true, 
+          limit: 6,
+          latitude: locationContext?.latitude ?? undefined,
+          longitude: locationContext?.longitude ?? undefined
+        });
         const transformedBrands = response.brands.map(transformApiBrandToBrand);
         setFeaturedBrands(transformedBrands);
       } catch (err) {
@@ -186,8 +191,24 @@ export const FeaturedBrands: React.FC = () => {
         </div>
 
         {featuredBrands.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-            <p className="text-gray-500">No brands available at the moment</p>
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 flex flex-col items-center">
+            <p className="text-4xl mb-4">{!locationContext?.latitude ? "📍" : "🔍"}</p>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-1">
+              {!locationContext?.latitude ? "Where are you?" : "No restaurants found"}
+            </h3>
+            <p className="text-zinc-500 text-sm mb-6 max-w-sm">
+              {!locationContext?.latitude 
+                ? "Please set your location to discover the best restaurants delivering to you." 
+                : "We couldn't find any brands delivering to your current location."}
+            </p>
+            {!locationContext?.latitude && (
+              <button 
+                onClick={() => locationContext?.openModal()}
+                className="px-6 py-2.5 bg-orange-500 text-white rounded-xl font-medium shadow-lg shadow-orange-200/50 hover:bg-orange-600 transition-colors cursor-pointer"
+              >
+                Set Location
+              </button>
+            )}
           </div>
         ) : (
           <>

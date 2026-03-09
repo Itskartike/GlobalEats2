@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Brand } from "../types/brand";
 import brandService from "../services/brandService";
 import { transformApiBrandToBrand } from "../utils/apiTransformers";
+import LocationContext from "../contexts/LocationContext";
 
 const CUISINES = ["All", "Pizza", "Burgers", "Indian", "Chinese", "South Indian", "Desserts", "Coffee & Tea", "Healthy", "Bakery"];
 const SORT_OPTIONS = [
@@ -24,6 +25,7 @@ const GRADIENTS = [
 
 export const BrandListing: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const locationContext = React.useContext(LocationContext);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,8 @@ export const BrandListing: React.FC = () => {
           limit: 50,
           search: searchTerm || undefined,
           cuisine_type: selectedCuisine === "All" ? undefined : selectedCuisine,
+          latitude: locationContext?.latitude ?? undefined,
+          longitude: locationContext?.longitude ?? undefined,
         });
         let transformedBrands = response.brands.map(transformApiBrandToBrand);
         
@@ -65,7 +69,7 @@ export const BrandListing: React.FC = () => {
     };
 
     fetchBrands();
-  }, [searchTerm, selectedCuisine, sortBy]);
+  }, [searchTerm, selectedCuisine, sortBy, locationContext?.latitude, locationContext?.longitude]);
 
   if (loading) {
     return (
@@ -181,15 +185,30 @@ export const BrandListing: React.FC = () => {
 
         {/* Restaurant Grid */}
         {brands.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
-            <p className="text-4xl mb-4">🔍</p>
-            <p className="text-gray-900 font-semibold text-lg mb-2">No restaurants found</p>
-            <p className="text-gray-500 text-sm mb-6">Try adjusting your search or filters</p>
-            <button onClick={() => { setSearchTerm(""); setSelectedCuisine("All"); }}
-              className="text-orange-600 font-medium text-sm hover:underline"
-            >
-              Clear all filters
-            </button>
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 flex flex-col items-center">
+            <p className="text-4xl mb-4">{!locationContext?.latitude ? "📍" : "🔍"}</p>
+            <h3 className="text-gray-900 font-semibold text-lg mb-2">
+              {!locationContext?.latitude ? "Set your delivery location" : "No restaurants found"}
+            </h3>
+            <p className="text-gray-500 text-sm mb-6 max-w-sm">
+              {!locationContext?.latitude 
+                ? "Please set your location to discover the best restaurants delivering to you right now." 
+                : "Try adjusting your search or filters"}
+            </p>
+            {!locationContext?.latitude ? (
+              <button 
+                onClick={() => locationContext?.openModal()}
+                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl font-medium shadow-lg shadow-orange-200/50 hover:from-orange-600 hover:to-rose-600 transition-all"
+              >
+                Set Location Now
+              </button>
+            ) : (
+              <button onClick={() => { setSearchTerm(""); setSelectedCuisine("All"); }}
+                className="text-orange-600 font-medium text-sm hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
         ) : (
           <motion.div

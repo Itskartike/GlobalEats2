@@ -88,6 +88,8 @@ export interface BrandListParams {
   featured?: boolean;
   cuisine_type?: string;
   search?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface NearbyOutletsParams {

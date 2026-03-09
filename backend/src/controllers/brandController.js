@@ -8,6 +8,26 @@ const {
 } = require("../models/associations");
 const { Op, Sequelize } = require("sequelize");
 
+// Helper methods for distance calculation
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Distance in kilometers
+  return Math.round(distance * 100) / 100; // Round to 2 decimal places
+}
+
 class BrandController {
   // Get all brands with filtering and pagination
   async getAllBrands(req, res) {
@@ -83,17 +103,32 @@ class BrandController {
         ];
       }
 
-      // Location-based filtering
-      if (latitude && longitude) {
-        include[1].where = {
-          ...include[1].where,
-          [Op.and]: Sequelize.literal(`
-            (6371 * acos(cos(radians(${latitude})) * cos(radians(latitude)) * 
-            cos(radians(longitude) - radians(${longitude})) + 
-            sin(radians(${latitude})) * sin(radians(latitude)))) <= delivery_radius
-          `),
-        };
+      // Location-based filtering (STRICT REQUIREMENT)
+      if (!latitude || !longitude) {
+        return res.json({
+          success: true,
+          data: {
+            brands: [],
+            pagination: {
+              current_page: parseInt(page),
+              total_pages: 0,
+              total_count: 0,
+              per_page: parseInt(limit),
+            },
+          },
+        });
       }
+
+      include[1].where = {
+        ...include[1].where,
+        [Op.and]: Sequelize.literal(`
+          (6371 * acos(cos(radians(${latitude})) * cos(radians(latitude)) * 
+          cos(radians(longitude) - radians(${longitude})) + 
+          sin(radians(${latitude})) * sin(radians(latitude)))) <= delivery_radius
+        `),
+      };
+      // Require the Outlet to be within range for the Brand to be returned
+      include[1].required = true;
 
       const { count, rows: brands } = await Brand.findAndCountAll({
         where,
@@ -109,7 +144,7 @@ class BrandController {
         brands.forEach((brand) => {
           brand.Outlets?.forEach((outlet) => {
             if (outlet.latitude && outlet.longitude) {
-              outlet.dataValues.distance = this.calculateDistance(
+              outlet.dataValues.distance = calculateDistance(
                 latitude,
                 longitude,
                 outlet.latitude,
@@ -542,26 +577,6 @@ class BrandController {
         error: error.message,
       });
     }
-  }
-
-  // Helper methods
-  calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Radius of the Earth in kilometers
-    const dLat = this.deg2rad(lat2 - lat1);
-    const dLon = this.deg2rad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.deg2rad(lat1)) *
-        Math.cos(this.deg2rad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c; // Distance in kilometers
-    return Math.round(distance * 100) / 100; // Round to 2 decimal places
-  }
-
-  deg2rad(deg) {
-    return deg * (Math.PI / 180);
   }
 }
 
