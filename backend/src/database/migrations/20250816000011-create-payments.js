@@ -50,7 +50,7 @@ module.exports = {
         onDelete: "CASCADE",
       },
       payment_method: {
-        type: Sequelize.ENUM("cash", "card", "upi", "wallet", "netbanking"),
+        type: Sequelize.ENUM("cash", "cod", "card", "upi", "wallet", "netbanking"),
         allowNull: false,
       },
       payment_provider: {

@@ -96,7 +96,7 @@ const Order = sequelize.define(
       defaultValue: "pending",
     },
     payment_method: {
-      type: DataTypes.ENUM("cash", "card", "upi", "wallet", "netbanking"),
+      type: DataTypes.ENUM("cash", "cod", "card", "upi", "wallet", "netbanking"),
       allowNull: true,
     },
     payment_id: {

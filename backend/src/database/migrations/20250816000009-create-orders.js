@@ -138,7 +138,7 @@ module.exports = {
         defaultValue: "pending",
       },
       payment_method: {
-        type: Sequelize.ENUM("cash", "card", "upi", "wallet", "netbanking"),
+        type: Sequelize.ENUM("cash", "cod", "card", "upi", "wallet", "netbanking"),
         allowNull: true,
       },
       estimated_delivery_time: {

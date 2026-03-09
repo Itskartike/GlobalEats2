@@ -20,7 +20,7 @@ const Payment = sequelize.define(
       references: { model: "users", key: "id" },
     },
     payment_method: {
-      type: DataTypes.ENUM("cash", "card", "upi", "wallet", "netbanking"),
+      type: DataTypes.ENUM("cash", "cod", "card", "upi", "wallet", "netbanking"),
       allowNull: false,
       defaultValue: "upi",
     },
