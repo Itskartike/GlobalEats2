@@ -2,25 +2,10 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Create ENUMs first - check if they don't already exist
+    // Drop any orphaned Sequelize-generated ENUM types from partial previous runs
     await queryInterface.sequelize.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_payments_status') THEN
-          CREATE TYPE enum_payments_status AS ENUM (
-            'pending', 'processing', 'completed', 'failed', 'cancelled', 'refunded'
-          );
-        END IF;
-      END $$;
-    `);
-
-    await queryInterface.sequelize.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_payments_method') THEN
-          CREATE TYPE enum_payments_method AS ENUM (
-            'card', 'upi', 'netbanking', 'wallet', 'cod', 'bank_transfer'
-          );
-        END IF;
-      END $$;
+      DROP TYPE IF EXISTS "enum_payments_payment_method";
+      DROP TYPE IF EXISTS "enum_payments_status";
     `);
 
     await queryInterface.createTable("payments", {

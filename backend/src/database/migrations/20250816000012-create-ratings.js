@@ -2,13 +2,9 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Create ENUMs first - check if they don't already exist
+    // Drop any orphaned Sequelize-generated ENUM types from partial previous runs
     await queryInterface.sequelize.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_ratings_status') THEN
-          CREATE TYPE enum_ratings_status AS ENUM ('active', 'hidden', 'flagged');
-        END IF;
-      END $$;
+      DROP TYPE IF EXISTS "enum_ratings_status";
     `);
 
     await queryInterface.createTable("ratings", {
