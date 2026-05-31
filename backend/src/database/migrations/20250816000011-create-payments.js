@@ -2,7 +2,13 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Drop any orphaned Sequelize-generated ENUM types from partial previous runs
+    // Skip if table already exists (e.g. created by sequelize.sync())
+    const [rows] = await queryInterface.sequelize.query(
+      `SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='payments' LIMIT 1;`
+    );
+    if (rows.length > 0) return;
+
+    // Drop any orphaned Sequelize-generated ENUM types from a crashed partial run
     await queryInterface.sequelize.query(`
       DROP TYPE IF EXISTS "enum_payments_payment_method";
       DROP TYPE IF EXISTS "enum_payments_status";

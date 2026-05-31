@@ -2,6 +2,11 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const [rows] = await queryInterface.sequelize.query(
+      `SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='order_items' LIMIT 1;`
+    );
+    if (rows.length > 0) return;
+
     await queryInterface.createTable("order_items", {
       id: {
         type: Sequelize.UUID,

@@ -2,6 +2,12 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    // Skip if orders table doesn't exist (nothing to update)
+    const [rows] = await queryInterface.sequelize.query(
+      `SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='orders' LIMIT 1;`
+    );
+    if (rows.length === 0) return;
+
     // Drop any existing FK on orders.address_id (name may vary by Sequelize version)
     await queryInterface.sequelize.query(`
       DO $$ DECLARE

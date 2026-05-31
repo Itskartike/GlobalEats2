@@ -2,8 +2,15 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Drop any orphaned Sequelize-generated ENUM types from partial previous runs
-    // (Sequelize names them "enum_{table}_{column}" automatically during createTable)
+    // If the table already exists (e.g. created by sequelize.sync() on first boot),
+    // skip entirely — dropping the ENUMs would fail because the table depends on them.
+    const [rows] = await queryInterface.sequelize.query(
+      `SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='orders' LIMIT 1;`
+    );
+    if (rows.length > 0) return;
+
+    // Drop any orphaned Sequelize-generated ENUM types from a crashed partial run
+    // (safe only when the table doesn't exist, so nothing depends on these types)
     await queryInterface.sequelize.query(`
       DROP TYPE IF EXISTS "enum_orders_status";
       DROP TYPE IF EXISTS "enum_orders_order_type";
