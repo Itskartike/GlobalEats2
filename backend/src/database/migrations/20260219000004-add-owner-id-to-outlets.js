@@ -2,18 +2,13 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn("outlets", "owner_id", {
-      type: Sequelize.UUID,
-      allowNull: true,
-      references: {
-        model: "users",
-        key: "id",
-      },
-      onUpdate: "CASCADE",
-      onDelete: "SET NULL",
-    });
-
-    await queryInterface.addIndex("outlets", ["owner_id"]);
+    await queryInterface.sequelize.query(`
+      ALTER TABLE "outlets" ADD COLUMN IF NOT EXISTS "owner_id" UUID
+        REFERENCES "users"("id") ON UPDATE CASCADE ON DELETE SET NULL;
+    `);
+    await queryInterface.sequelize.query(`
+      CREATE INDEX IF NOT EXISTS "outlets_owner_id" ON "outlets" ("owner_id");
+    `);
   },
 
   async down(queryInterface, Sequelize) {
